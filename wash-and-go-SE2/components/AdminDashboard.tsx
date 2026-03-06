@@ -110,21 +110,6 @@ export default function AdminDashboard({ bookings, onUpdateStatus, onAddUpdate }
             <h1 className="text-3xl font-extrabold text-slate-900">Admin Dashboard</h1>
             <p className="text-gray-500">Manage bookings and monitor capacity.</p>
           </div>
-
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center gap-4">
-            <Settings className="text-gray-400 w-5 h-5" />
-            <div>
-              <label className="text-xs text-gray-500 block">Down Payment %</label>
-              <select
-                value={downPaymentPercentage}
-                onChange={(e) => setDownPaymentPercentage(Number(e.target.value))}
-                className="text-sm font-bold text-slate-900 bg-transparent outline-none cursor-pointer"
-              >
-                <option value={30}>30%</option>
-                <option value={50}>50%</option>
-              </select>
-            </div>
-          </div>
         </div>
 
         {/* Capacity Overview */}

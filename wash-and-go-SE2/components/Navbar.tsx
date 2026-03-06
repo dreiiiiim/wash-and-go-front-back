@@ -1,5 +1,6 @@
 import React from 'react';
 import { CarFront, LayoutDashboard, LogIn, LogOut, UserCircle2 } from 'lucide-react';
+import logo from '../assets/wash and go logo.png';
 import type { ViewType, AppUser } from '../App';
 
 interface NavbarProps {
@@ -17,12 +18,14 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
           className="flex items-center gap-2 cursor-pointer" 
           onClick={() => onViewChange('HOME')}
         >
-          <div className="text-white p-2 rounded-lg" style={{ backgroundColor: '#ee4923' }}>
-            <CarFront size={24} />
-          </div>
+          <img 
+            src={logo} 
+            alt="Wash & Go Logo" 
+            className="w-14 h-14 object-contain rounded-lg shadow-sm border border-gray-100"
+          />
           <div>
-            <h1 className="text-xl font-bold tracking-tight" style={{ color: '#383838' }}>WASH & GO</h1>
-            <p className="text-xs text-gray-500 font-medium tracking-wide">BALIWAG BRANCH</p>
+            <h1 className="text-lg md:text-xl font-bold tracking-tight" style={{ color: '#383838' }}>Wash & Go Auto Salon</h1>
+            <p className="text-xs text-gray-500 font-medium tracking-wide">Baliwag Branch</p>
           </div>
         </div>
 

@@ -5,7 +5,7 @@ import { Star, CheckCircle2, ChevronRight, Sparkles, Droplets, Car, Shield, Pain
 import wurthLogo from '../assets/wurth-logo.png';
 import hpureLogo from '../assets/hpure_logo.png';
 import iglLogo from '../assets/unnamed.png';
-import ppfLogo from '../assets/241752745_534617887876066_3022425563898577722_n-Photoroom.png';
+import ppfLogo from '../assets/ppf.png';
 
 interface HomePageProps {
   onViewChange: (view: 'HOME' | 'CLIENT' | 'ADMIN' | 'SERVICES' | 'STATUS') => void;
@@ -84,7 +84,7 @@ export default function HomePage({ onViewChange }: HomePageProps) {
       {/* ==================== PARTNER LOGOS ==================== */}
       <section className="py-10 border-b border-gray-200" style={{ backgroundColor: '#f5f5f5' }}>
         <div className="max-w-6xl mx-auto px-4 mb-4">
-          <p className="text-center text-xs font-semibold uppercase tracking-widest" style={{ color: '#383838' }}>Trusted by leading brands</p>
+          <p className="text-center text-sm font-semibold uppercase tracking-widest" style={{ color: '#383838' }}>Trusted by leading brands</p>
         </div>
         <div className="relative overflow-hidden w-full"
           style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}
@@ -99,7 +99,7 @@ export default function HomePage({ onViewChange }: HomePageProps) {
                   key={`${setIdx}-${i}`}
                   src={logo}
                   alt="Partner logo"
-                  className="h-10 md:h-14 mx-8 md:mx-12 object-contain"
+                  className="h-16 md:h-20 mx-8 md:mx-12 object-contain"
                 />
               ))
             )}

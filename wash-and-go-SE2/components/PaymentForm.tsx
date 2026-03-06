@@ -129,8 +129,15 @@ export default function PaymentForm({ service, vehicleSize, fuelType, date, time
                   type="tel" 
                   required
                   value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  placeholder="0917 123 4567"
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, ''); // Only digits
+                    if (val.length <= 11) {
+                      setPhone(val);
+                    }
+                  }}
+                  pattern="^09\d{9}$"
+                  title="Phone number must start with 09 and be exactly 11 digits (e.g., 09171234567)"
+                  placeholder="09XXXXXXXXX"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
                 />
               </div>

@@ -61,7 +61,7 @@ export default function BookingWizard({ onSubmit, token }: BookingWizardProps) {
 
     // Lube flat pricing — Express (no fuel type selected, use first price)
     if (selectedService.isLubeFlat) {
-      return Object.values(selectedService.prices)[0];
+      return (Object.values(selectedService.prices)[0] as number);
     }
 
     // Standard pricing — by vehicle size
