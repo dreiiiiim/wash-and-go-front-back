@@ -1,0 +1,48 @@
+import { Booking } from '../types';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, options);
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+function authHeaders(token: string) {
+  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
+export const api = {
+  // ── Services ──────────────────────────────────────────────
+  getServices: () => request<any[]>('/services'),
+
+  // ── Bookings ──────────────────────────────────────────────
+  createBooking: (dto: object, token?: string) =>
+    request<Booking>('/bookings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(dto),
+    }),
+
+  getBookingById: (id: string) =>
+    request<Booking>(`/bookings/${id.toUpperCase()}`),
+
+  getBookedSlots: (date: string) =>
+    request<string[]>(`/bookings/booked-slots?date=${date}`),
+
+  getAllBookings: (token: string) =>
+    request<Booking[]>('/bookings', { headers: authHeaders(token) }),
+
+  updateStatus: (id: string, status: string, token: string) =>
+    request<Booking>(`/bookings/${id}/status`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ status }),
+    }),
+};

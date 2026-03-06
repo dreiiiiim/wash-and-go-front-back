@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls D:\\\\Documents\\(D\\)\\\\3rdYR-2nd\\\\SE2\\\\wash-and-go-SE2\\\\assets:*)"
+    ]
+  }
+}
