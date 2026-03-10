@@ -45,4 +45,15 @@ export const api = {
       headers: authHeaders(token),
       body: JSON.stringify({ status }),
     }),
+
+  updateService: (id: string, dto: object, token: string) =>
+    request<any>(`/services/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(dto),
+    }),
+
+  // ── Customer ───────────────────────────────────────────────
+  getMyBookings: (token: string) =>
+    request<Booking[]>('/bookings/my-bookings', { headers: authHeaders(token) }),
 };

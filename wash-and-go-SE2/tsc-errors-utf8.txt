@@ -1,0 +1,5 @@
+﻿components/AdminDashboard.tsx(406,34): error TS2339: Property 'map' does not exist on type 'unknown'.
+components/BookingWizard.tsx(90,40): error TS2339: Property 'paymentMethod' does not exist on type '{ name: string; phone: string; proof: string; }'.
+components/UserProfile.tsx(55,19): error TS2367: This comparison appears to be unintentional because the types 'BookingStatus' and '"In Progress"' have no overlap.
+components/UserProfile.tsx(207,36): error TS2322: Type '{ key: string; booking: Booking; }' is not assignable to type 'BookingCardProps'.
+  Property 'key' does not exist on type 'BookingCardProps'.

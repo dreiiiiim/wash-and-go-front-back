@@ -30,6 +30,28 @@ export class ServicesService {
     return this.toServicePackage(data);
   }
 
+  async update(id: string, dto: Record<string, any>) {
+    const patch: Record<string, any> = {};
+    if (dto.name !== undefined)              patch.name = dto.name;
+    if (dto.description !== undefined)       patch.description = dto.description;
+    if (dto.price_small !== undefined)       patch.price_small = dto.price_small;
+    if (dto.price_medium !== undefined)      patch.price_medium = dto.price_medium;
+    if (dto.price_large !== undefined)       patch.price_large = dto.price_large;
+    if (dto.price_extra_large !== undefined) patch.price_extra_large = dto.price_extra_large;
+    if (dto.lube_prices !== undefined)       patch.lube_prices = dto.lube_prices;
+
+    const { data, error } = await this.supabase
+      .getAdminClient()
+      .from('services')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) throw new NotFoundException(`Service ${id} not found`);
+    return this.toServicePackage(data);
+  }
+
   private toServicePackage(row: any) {
     return {
       id: row.id,

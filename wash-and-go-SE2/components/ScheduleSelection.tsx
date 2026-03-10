@@ -28,6 +28,27 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration }:
       .finally(() => setLoadingSlots(false));
   }, [selectedDate]);
 
+  // Returns true if the time slot is in the past for today (Philippine Standard Time, UTC+8)
+  const isPastTime = (time: string): boolean => {
+    const todayPH = format(
+      new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })),
+      'yyyy-MM-dd'
+    );
+    if (selectedDate !== todayPH) return false;
+
+    // Parse the slot time (e.g. "03:00 PM") into today's PH DateTime
+    const [timePart, period] = time.split(' ');
+    let [hours, minutes] = timePart.split(':').map(Number);
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+
+    const nowPH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    const slotPH = new Date(nowPH);
+    slotPH.setHours(hours, minutes, 0, 0);
+
+    return slotPH <= nowPH;
+  };
+
   const isAvailable = (time: string) => !bookedSlots.includes(time);
 
   const handleContinue = () => {
@@ -61,13 +82,15 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration }:
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {TIME_SLOTS.map((time) => {
             const available = isAvailable(time);
+            const past = isPastTime(time);
+            const disabled = !available || past || loadingSlots;
             return (
               <button
                 key={time}
-                disabled={!available || loadingSlots}
+                disabled={disabled}
                 onClick={() => setSelectedTime(time)}
                 className={`py-3 px-2 rounded-lg text-sm font-bold border transition-all ${
-                  !available
+                  disabled
                     ? 'bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed'
                     : selectedTime === time
                       ? 'bg-orange-600 text-white border-orange-600 shadow-md'
@@ -75,7 +98,8 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration }:
                 }`}
               >
                 {time}
-                {!available && <span className="block text-[10px] font-normal">Fully Booked</span>}
+                {past && <span className="block text-[10px] font-normal">Past</span>}
+                {!past && !available && <span className="block text-[10px] font-normal">Fully Booked</span>}
               </button>
             );
           })}

@@ -5,15 +5,17 @@ import VehicleSelection from './VehicleSelection';
 import ScheduleSelection from './ScheduleSelection';
 import PaymentForm from './PaymentForm';
 import { api } from '../lib/api';
+import { SERVICES } from '../constants';
 
 interface BookingWizardProps {
   onSubmit: (booking: Booking) => void;
   token: string | null;
+  services?: ServicePackage[];
 }
 
 type Step = 1 | 2 | 3 | 4;
 
-export default function BookingWizard({ onSubmit, token }: BookingWizardProps) {
+export default function BookingWizard({ onSubmit, token, services = SERVICES }: BookingWizardProps) {
   const [step, setStep] = useState<Step>(1);
 
   // Form State
@@ -146,6 +148,7 @@ export default function BookingWizard({ onSubmit, token }: BookingWizardProps) {
             fuelType={fuelType}
             onSelect={handleServiceSelect}
             onBack={handleBack}
+            services={services}
           />
         )}
 

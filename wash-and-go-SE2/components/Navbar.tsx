@@ -88,10 +88,26 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   ADMIN PANEL
                 </button>
               )}
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
-                <UserCircle2 size={18} className="text-gray-400" />
-                <span className="hidden md:inline">{user.name}</span>
-              </div>
+              {!user.isStaff && (
+                <button
+                  onClick={() => onViewChange('PROFILE')}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-all ${
+                    currentView === 'PROFILE'
+                      ? 'bg-orange-50 text-orange-600'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  title="My Profile"
+                >
+                  <UserCircle2 size={18} className={currentView === 'PROFILE' ? 'text-orange-500' : 'text-gray-400'} />
+                  <span className="hidden md:inline">{user.name}</span>
+                </button>
+              )}
+              {user.isStaff && (
+                <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                  <UserCircle2 size={18} className="text-gray-400" />
+                  <span className="hidden md:inline">{user.name}</span>
+                </div>
+              )}
               <button
                 onClick={onLogout}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all"

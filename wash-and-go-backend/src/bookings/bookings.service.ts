@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -119,9 +120,21 @@ export class BookingsService {
     return (data || []).map((b: any) => b.time_slot);
   }
 
+  async findMyBookings(userId: string) {
+    const { data, error } = await this.supabase
+      .getAdminClient()
+      .from('bookings')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return (data || []).map(this.toBooking);
+  }
+
   async updateStatus(
     id: string,
-    status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED',
+    status: string,
     requestingUserId: string,
   ) {
     const { data: profile } = await this.supabase
@@ -135,15 +148,33 @@ export class BookingsService {
       throw new ForbiddenException('Only admins can update booking status');
     }
 
+    // Normalize UI status strings to DB enum values
+    const statusMap: Record<string, string> = {
+      'pending': 'PENDING',
+      'confirmed': 'CONFIRMED',
+      'in progress': 'IN_PROGRESS',
+      'in_progress': 'IN_PROGRESS',
+      'completed': 'COMPLETED',
+      'cancelled': 'CANCELLED',
+    };
+    const normalizedStatus = statusMap[status.toLowerCase()] ?? status.toUpperCase();
+
     const { data, error } = await this.supabase
       .getAdminClient()
       .from('bookings')
-      .update({ status })
-      .eq('id', id)
+      .update({ status: normalizedStatus })
+      .eq('id', id.toUpperCase())
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error || !data) throw new NotFoundException(`Booking ${id} not found`);
+    if (error) {
+      throw new BadRequestException(`Failed to update booking status: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new NotFoundException(`Booking ${id.toUpperCase()} not found`);
+    }
+
     return this.toBooking(data);
   }
 

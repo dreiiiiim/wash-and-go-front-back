@@ -6,7 +6,9 @@ import AdminDashboard from './components/AdminDashboard';
 import ServicesAndRates from './components/ServicesAndRates';
 import CheckStatus from './components/CheckStatus';
 import AuthPage from './components/AuthPage';
-import { Booking, BookingStatus } from './types';
+import UserProfile from './components/UserProfile';
+import { Booking, BookingStatus, ServicePackage } from './types';
+import { SERVICES } from './constants';
 import { supabase } from './lib/supabase';
 import { api } from './lib/api';
 
@@ -16,13 +18,23 @@ export type AppUser = {
   isStaff: boolean;
 };
 
-export type ViewType = 'HOME' | 'CLIENT' | 'ADMIN' | 'SERVICES' | 'STATUS' | 'AUTH';
+export type ViewType = 'HOME' | 'CLIENT' | 'ADMIN' | 'SERVICES' | 'STATUS' | 'AUTH' | 'PROFILE';
 
 export default function App() {
   const [view, setView] = useState<ViewType>('HOME');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [user, setUser] = useState<AppUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [services, setServices] = useState<ServicePackage[]>(SERVICES);
+  const [userBookings, setUserBookings] = useState<Booking[]>([]);
+  const [loadingUserBookings, setLoadingUserBookings] = useState(false);
+
+  // Fetch live service prices on mount
+  useEffect(() => {
+    api.getServices()
+      .then((data: any[]) => { if (data?.length > 0) setServices(data as ServicePackage[]); })
+      .catch(() => { /* fall back to constants */ });
+  }, []);
 
   // Listen to Supabase auth state (handles Google OAuth redirect)
   useEffect(() => {
@@ -37,6 +49,7 @@ export default function App() {
         setUser(null);
         setToken(null);
         setBookings([]);
+        setUserBookings([]);
       }
     });
 
@@ -64,12 +77,28 @@ export default function App() {
 
     setUser(appUser);
 
-    // If admin, fetch all bookings
+    // If admin, fetch all bookings; if customer, fetch their own
     if (isStaff) {
       try {
         const data = await api.getAllBookings(accessToken);
         setBookings(data);
       } catch { /* ignore — will show empty */ }
+    } else {
+      loadUserBookings(accessToken);
+    }
+  };
+
+  const loadUserBookings = async (accessToken?: string) => {
+    const t = accessToken ?? token;
+    if (!t) return;
+    setLoadingUserBookings(true);
+    try {
+      const data = await api.getMyBookings(t);
+      setUserBookings(data);
+    } catch {
+      // silently fail — UI shows empty state
+    } finally {
+      setLoadingUserBookings(false);
     }
   };
 
@@ -101,9 +130,19 @@ export default function App() {
     ));
   };
 
+  const handleUpdateService = async (id: string, dto: object) => {
+    if (!token) return;
+    try {
+      const updated = await api.updateService(id, dto, token);
+      setServices(prev => prev.map(s => s.id === id ? { ...s, ...updated } : s));
+    } catch (err: any) {
+      alert(`Failed to update service: ${err.message}`);
+    }
+  };
+
   const handleAuthSuccess = (loggedInUser: AppUser) => {
     setUser(loggedInUser);
-    setView(loggedInUser.isStaff ? 'ADMIN' : 'CLIENT');
+    setView(loggedInUser.isStaff ? 'ADMIN' : 'PROFILE');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -133,14 +172,25 @@ export default function App() {
       <main className={`flex-grow ${view !== 'HOME' ? 'container mx-auto px-4 py-8' : ''}`}>
         {view === 'HOME' && <HomePage onViewChange={handleViewChange} />}
         {view === 'AUTH' && <AuthPage onAuthSuccess={handleAuthSuccess} />}
-        {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} />}
-        {view === 'SERVICES' && <ServicesAndRates onBookNow={() => handleViewChange('CLIENT')} />}
+        {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} services={services} />}
+        {view === 'SERVICES' && <ServicesAndRates onBookNow={() => handleViewChange('CLIENT')} services={services} />}
         {view === 'STATUS' && <CheckStatus />}
+        {view === 'PROFILE' && user && (
+          <UserProfile
+            user={user}
+            userBookings={userBookings}
+            loading={loadingUserBookings}
+            onRefresh={() => loadUserBookings()}
+          />
+        )}
         {view === 'ADMIN' && (
           <AdminDashboard
             bookings={bookings}
+            services={services}
+            token={token}
             onUpdateStatus={handleUpdateStatus}
             onAddUpdate={handleAddUpdate}
+            onUpdateService={handleUpdateService}
           />
         )}
       </main>

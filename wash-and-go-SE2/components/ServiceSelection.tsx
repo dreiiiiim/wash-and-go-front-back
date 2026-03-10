@@ -9,9 +9,10 @@ interface ServiceSelectionProps {
   fuelType: FuelType | null;
   onSelect: (service: ServicePackage) => void;
   onBack: () => void;
+  services?: ServicePackage[];
 }
 
-export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, onSelect, onBack }: ServiceSelectionProps) {
+export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, onSelect, onBack, services = SERVICES }: ServiceSelectionProps) {
   const categories = vehicleType === 'Motorcycle'
     ? [ServiceCategory.LUBE, ServiceCategory.COATING]
     : [ServiceCategory.LUBE, ServiceCategory.GROOMING, ServiceCategory.COATING];
@@ -20,7 +21,7 @@ export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, o
   // Filter services by category and vehicle applicability
   const subServices = useMemo(() => {
     if (!activeCategory) return [];
-    let filtered = SERVICES.filter(s => s.category === activeCategory);
+    let filtered = services.filter(s => s.category === activeCategory);
 
     // For Lube, filter out mismatched specific fuels if it's express
     if (activeCategory === ServiceCategory.LUBE && fuelType) {
@@ -40,7 +41,7 @@ export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, o
     }
 
     return filtered;
-  }, [activeCategory, vehicleType, fuelType]);
+  }, [activeCategory, vehicleType, fuelType, services]);
 
   const handleBackCategory = () => {
     setActiveCategory(null);

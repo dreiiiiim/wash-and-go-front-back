@@ -41,6 +41,13 @@ export class BookingsController {
     return this.bookingsService.checkAvailability(date, timeSlot);
   }
 
+  /** GET /api/bookings/my-bookings — Customer's own bookings */
+  @UseGuards(SupabaseAuthGuard)
+  @Get('my-bookings')
+  findMyBookings(@CurrentUser() user: any) {
+    return this.bookingsService.findMyBookings(user.id);
+  }
+
   /** GET /api/bookings/:id — Get booking by ID (public, for status check) */
   @Get(':id')
   findById(@Param('id') id: string) {
