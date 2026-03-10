@@ -122,7 +122,10 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration, s
           type="text"
           required
           value={plateNumber}
-          onChange={e => setPlateNumber(e.target.value)}
+          onChange={e => {
+            const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
+            setPlateNumber(val);
+          }}
           placeholder="e.g. ABC 1234"
           className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl font-bold text-lg text-gray-800 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 uppercase"
         />

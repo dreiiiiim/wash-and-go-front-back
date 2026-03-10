@@ -115,7 +115,10 @@ export default function PaymentForm({ service, vehicleSize, fuelType, date, time
                   type="text" 
                   required
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^a-zA-Z0-9 ]/g, '');
+                    setName(val);
+                  }}
                   placeholder="Juan Dela Cruz"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500"
                 />
