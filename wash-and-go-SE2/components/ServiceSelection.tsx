@@ -14,7 +14,7 @@ interface ServiceSelectionProps {
 
 export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, onSelect, onBack, services = SERVICES }: ServiceSelectionProps) {
   const categories = vehicleType === 'Motorcycle'
-    ? [ServiceCategory.LUBE, ServiceCategory.COATING]
+    ? [ServiceCategory.COATING]
     : [ServiceCategory.LUBE, ServiceCategory.GROOMING, ServiceCategory.COATING];
   const [activeCategory, setActiveCategory] = React.useState<ServiceCategory | null>(null);
 

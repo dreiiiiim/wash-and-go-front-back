@@ -88,7 +88,7 @@ export default function BookingWizard({ onSubmit, token, services = SERVICES }: 
         timeSlot,
         plateNumber,
         paymentProofUrl: customerDetails.proof,
-        paymentMethod: customerDetails.paymentMethod,
+        paymentMethod: (customerDetails as any).paymentMethod,
       }, token || undefined);
 
       onSubmit(booking);
@@ -157,6 +157,7 @@ export default function BookingWizard({ onSubmit, token, services = SERVICES }: 
             onSelect={handleScheduleSelect}
             onBack={handleBack}
             serviceDuration={selectedService?.durationHours || 1}
+            serviceCategory={selectedService?.category}
           />
         )}
 

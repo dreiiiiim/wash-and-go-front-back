@@ -27,9 +27,9 @@ export class BookingsService {
     }
 
     // 2. Check slot availability
-    const isAvailable = await this.isSlotAvailable(dto.date, dto.timeSlot);
+    const isAvailable = await this.isSlotAvailable(dto.date, dto.timeSlot, service.category);
     if (!isAvailable) {
-      throw new ConflictException(`Time slot ${dto.timeSlot} on ${dto.date} is already booked`);
+      throw new ConflictException(`Time slot ${dto.timeSlot} on ${dto.date} is already full for this service type.`);
     }
 
     // 3. Calculate price
@@ -109,15 +109,37 @@ export class BookingsService {
     return data.map(this.toBooking);
   }
 
-  async getBookedSlots(date: string): Promise<string[]> {
-    const { data } = await this.supabase
+  async getBookedSlots(date: string, category?: string): Promise<string[]> {
+    // Determine max capacity for the requested category
+    let maxCapacity = 1; // Default
+    if (category === 'LUBE') maxCapacity = 1;
+    if (category === 'GROOMING') maxCapacity = 2;
+    if (category === 'COATING') maxCapacity = 2;
+
+    let query = this.supabase
       .getAdminClient()
       .from('bookings')
-      .select('time_slot')
+      .select('time_slot, services!inner(category)')
       .eq('date', date)
       .in('status', ['PENDING', 'CONFIRMED']);
 
-    return (data || []).map((b: any) => b.time_slot);
+    if (category) {
+      query = query.eq('services.category', category);
+    }
+
+    const { data } = await query;
+
+    // Count bookings per time slot
+    const slotCounts: Record<string, number> = {};
+    if (data) {
+      for (const b of data) {
+        slotCounts[b.time_slot] = (slotCounts[b.time_slot] || 0) + 1;
+      }
+    }
+
+    // A slot is "booked" if it reaches the max capacity for the requested category
+    // (If category is undefined, it defaults to maxCapacity = 1, which blocks all)
+    return Object.keys(slotCounts).filter(slot => slotCounts[slot] >= maxCapacity);
   }
 
   async findMyBookings(userId: string) {
@@ -178,22 +200,31 @@ export class BookingsService {
     return this.toBooking(data);
   }
 
-  async checkAvailability(date: string, timeSlot: string) {
-    const available = await this.isSlotAvailable(date, timeSlot);
-    return { date, timeSlot, available };
+  async checkAvailability(date: string, timeSlot: string, category?: string) {
+    const available = await this.isSlotAvailable(date, timeSlot, category);
+    return { date, timeSlot, available, category };
   }
 
-  private async isSlotAvailable(date: string, timeSlot: string): Promise<boolean> {
-    const { data } = await this.supabase
+  private async isSlotAvailable(date: string, timeSlot: string, serviceCategory?: string): Promise<boolean> {
+    let maxCapacity = 1;
+    if (serviceCategory === 'LUBE') maxCapacity = 1;
+    if (serviceCategory === 'GROOMING') maxCapacity = 2;
+    if (serviceCategory === 'COATING') maxCapacity = 2;
+
+    let query = this.supabase
       .getAdminClient()
       .from('bookings')
-      .select('id')
+      .select('id, services!inner(category)')
       .eq('date', date)
       .eq('time_slot', timeSlot)
-      .in('status', ['PENDING', 'CONFIRMED'])
-      .limit(1);
+      .in('status', ['PENDING', 'CONFIRMED']);
 
-    return !data || data.length === 0;
+    if (serviceCategory) {
+      query = query.eq('services.category', serviceCategory);
+    }
+
+    const { data } = await query;
+    return !data || data.length < maxCapacity;
   }
 
   private toBooking(row: any) {

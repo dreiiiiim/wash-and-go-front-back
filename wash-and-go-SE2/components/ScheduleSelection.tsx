@@ -8,9 +8,10 @@ interface ScheduleSelectionProps {
   onSelect: (date: string, time: string, plateNumber: string) => void;
   onBack: () => void;
   serviceDuration: number;
+  serviceCategory?: string;
 }
 
-export default function ScheduleSelection({ onSelect, onBack, serviceDuration }: ScheduleSelectionProps) {
+export default function ScheduleSelection({ onSelect, onBack, serviceDuration, serviceCategory }: ScheduleSelectionProps) {
   const today = startOfToday();
   const [selectedDate, setSelectedDate] = useState<string>(format(addDays(today, 1), 'yyyy-MM-dd'));
   const [selectedTime, setSelectedTime] = useState<string>('');
@@ -22,11 +23,11 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration }:
     if (!selectedDate) return;
     setLoadingSlots(true);
     setSelectedTime('');
-    api.getBookedSlots(selectedDate)
+    api.getBookedSlots(selectedDate, serviceCategory)
       .then(setBookedSlots)
       .catch(() => setBookedSlots([]))
       .finally(() => setLoadingSlots(false));
-  }, [selectedDate]);
+  }, [selectedDate, serviceCategory]);
 
   // Returns true if the time slot is in the past for today (Philippine Standard Time, UTC+8)
   const isPastTime = (time: string): boolean => {
@@ -88,10 +89,16 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration }:
               <button
                 key={time}
                 disabled={disabled}
-                onClick={() => setSelectedTime(time)}
+                onClick={(e) => {
+                  if (disabled) {
+                    e.preventDefault();
+                    return;
+                  }
+                  setSelectedTime(time);
+                }}
                 className={`py-3 px-2 rounded-lg text-sm font-bold border transition-all ${
                   disabled
-                    ? 'bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed'
+                    ? 'bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed opacity-70 pointer-events-none'
                     : selectedTime === time
                       ? 'bg-orange-600 text-white border-orange-600 shadow-md'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-600'

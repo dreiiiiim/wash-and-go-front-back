@@ -26,19 +26,23 @@ export class BookingsController {
     return this.bookingsService.create(dto, userId);
   }
 
-  /** GET /api/bookings/booked-slots?date=YYYY-MM-DD — Booked time slots for a date */
+  /** GET /api/bookings/booked-slots?date=YYYY-MM-DD&category=LUBE — Booked time slots for a date */
   @Get('booked-slots')
-  getBookedSlots(@Query('date') date: string) {
-    return this.bookingsService.getBookedSlots(date);
+  getBookedSlots(
+    @Query('date') date: string,
+    @Query('category') category?: string,
+  ) {
+    return this.bookingsService.getBookedSlots(date, category);
   }
 
-  /** GET /api/bookings/availability?date=&timeSlot= — Check single slot */
+  /** GET /api/bookings/availability?date=&timeSlot=&category= — Check single slot */
   @Get('availability')
   checkAvailability(
     @Query('date') date: string,
     @Query('timeSlot') timeSlot: string,
+    @Query('category') category?: string,
   ) {
-    return this.bookingsService.checkAvailability(date, timeSlot);
+    return this.bookingsService.checkAvailability(date, timeSlot, category);
   }
 
   /** GET /api/bookings/my-bookings — Customer's own bookings */

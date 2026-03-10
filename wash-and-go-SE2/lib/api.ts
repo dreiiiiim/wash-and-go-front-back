@@ -33,8 +33,10 @@ export const api = {
   getBookingById: (id: string) =>
     request<Booking>(`/bookings/${id.toUpperCase()}`),
 
-  getBookedSlots: (date: string) =>
-    request<string[]>(`/bookings/booked-slots?date=${date}`),
+  getBookedSlots: (date: string, category?: string) => {
+    const query = category ? `?date=${date}&category=${category}` : `?date=${date}`;
+    return request<string[]>(`/bookings/booked-slots${query}`);
+  },
 
   getAllBookings: (token: string) =>
     request<Booking[]>('/bookings', { headers: authHeaders(token) }),

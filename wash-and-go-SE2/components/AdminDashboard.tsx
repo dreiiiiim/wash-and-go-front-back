@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays, subDays } from 'date-fns';
 import { Booking, ServicePackage } from '../types';
-import { Filter, Calendar, Car, Bike, Wrench, Image as ImageIcon, Plus, X, DollarSign, Save, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
+import { Filter, Calendar, Car, Bike, Wrench, Image as ImageIcon, Plus, X, DollarSign, Save, ChevronDown, ChevronUp, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface AdminDashboardProps {
@@ -166,14 +166,31 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
     }), [bookings, filterStatus, filterDate, filterVehicle]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
-  const activeToday = bookings.filter(b => {
+  const [selectedDate, setSelectedDate] = useState(today);
+
+  const activeOnSelectedDate = bookings.filter(b => {
     const s = b.status as string;
-    return b.date === today && s !== 'Cancelled' && s !== 'Completed' && s !== 'CANCELLED' && s !== 'COMPLETED';
+    return b.date === selectedDate && s !== 'Cancelled' && s !== 'Completed' && s !== 'CANCELLED' && s !== 'COMPLETED';
   });
-  const carWashLubeCount  = activeToday.filter(b => b.vehicleCategory === 'Car'        && (b.bayType === 'Wash' || b.bayType === 'Lube')).length;
-  const motoWashLubeCount = activeToday.filter(b => b.vehicleCategory === 'Motorcycle' && (b.bayType === 'Wash' || b.bayType === 'Lube')).length;
-  const detailingCount    = activeToday.filter(b => b.bayType === 'Detailing').length;
-  const coatingCount      = activeToday.filter(b => b.bayType === 'Coating').length;
+
+  const activeSlots = useMemo(() => {
+    const slots: Record<string, { lube: number, grooming: number, coating: number }> = {};
+    activeOnSelectedDate.forEach(b => {
+      const time = b.time ?? b.timeSlot;
+      if (!slots[time]) slots[time] = { lube: 0, grooming: 0, coating: 0 };
+      
+      const service = services.find(s => s.id === b.serviceId);
+      if (service?.category === 'LUBE') slots[time].lube++;
+      else if (service?.category === 'GROOMING') slots[time].grooming++;
+      else if (service?.category === 'COATING') slots[time].coating++;
+    });
+    // Extract AM/PM correctly for simple sorting, or sort alphabetically since HH:MM format is tricky with 12 hour
+    return Object.entries(slots).sort((a, b) => {
+      const tA = new Date(`${selectedDate} ${a[0]}`).getTime();
+      const tB = new Date(`${selectedDate} ${b[0]}`).getTime();
+      return tA - tB;
+    });
+  }, [activeOnSelectedDate, services, selectedDate]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -241,22 +258,54 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
           <>
             {/* Capacity */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-orange-500" /> Today's Capacity ({today})
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Car Wash/Lube', count: carWashLubeCount, max: 4 },
-                  { label: 'Moto Wash/Lube', count: motoWashLubeCount, max: 3 },
-                  { label: 'Detailing Room', count: detailingCount, max: 2 },
-                  { label: 'Ceramic Coating', count: coatingCount, max: 2 },
-                ].map(({ label, count, max }) => (
-                  <div key={label} className="bg-slate-50 p-4 rounded-xl border border-gray-100">
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">{label}</p>
-                    <p className="text-2xl font-bold text-slate-900">{count} <span className="text-sm font-normal text-gray-400">/ {max} max</span></p>
-                  </div>
-                ))}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center">
+                  <Calendar className="w-5 h-5 mr-2 text-orange-500" /> Active Slots
+                </h2>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setSelectedDate(prev => format(subDays(parseISO(prev), 1), 'yyyy-MM-dd'))}
+                    className="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600 transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <input 
+                    type="date" 
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
+                  />
+                  <button 
+                    onClick={() => setSelectedDate(prev => format(addDays(parseISO(prev), 1), 'yyyy-MM-dd'))}
+                    className="p-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
+              {activeSlots.length === 0 ? (
+                <p className="text-sm text-gray-500">No active bookings for {format(parseISO(selectedDate), 'MMM d, yyyy')}.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {activeSlots.map(([time, counts]) => (
+                    <div key={time} className="bg-slate-50 p-4 rounded-xl border border-gray-100 space-y-3">
+                      <p className="font-bold text-slate-900 border-b border-gray-200 pb-2">{time}</p>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 font-medium">Lube &amp; Go</span>
+                        <span className={cn("font-bold text-xs px-2 py-0.5 rounded-full", counts.lube >= 1 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700")}>{counts.lube} / 1</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 font-medium">Detailing Studio</span>
+                        <span className={cn("font-bold text-xs px-2 py-0.5 rounded-full", counts.grooming >= 2 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700")}>{counts.grooming} / 2</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 font-medium">Ceramic Coating</span>
+                        <span className={cn("font-bold text-xs px-2 py-0.5 rounded-full", counts.coating >= 2 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700")}>{counts.coating} / 2</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Bookings Table */}
