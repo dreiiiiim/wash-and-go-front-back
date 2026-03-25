@@ -51,7 +51,7 @@ export default function HomePage({ onViewChange }: HomePageProps) {
           <p className="inline-block font-semibold text-sm tracking-widest uppercase mb-4 rounded-full px-4 py-1.5 backdrop-blur-sm" style={{ color: '#F4921F', border: '1px solid rgba(238,73,35,0.3)', backgroundColor: 'rgba(238,73,35,0.1)' }}>
             Premium Car Care
           </p>
-          <h1 className="text-5xl md:text-6xl font-black text-white leading-tight mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
             Premium Car Care<br />
             <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}>Starts Here</span>
           </h1>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { CarFront, LayoutDashboard, LogIn, LogOut, UserCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CarFront, LayoutDashboard, LogIn, LogOut, UserCircle2, Menu, X } from 'lucide-react';
 import logo from '../assets/wash and go logo.png';
 import type { ViewType, AppUser } from '../App';
 
@@ -11,6 +11,13 @@ interface NavbarProps {
 }
 
 export default function Navbar({ currentView, onViewChange, user, onLogout }: NavbarProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleNavClick = (view: ViewType) => {
+    onViewChange(view);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -29,30 +36,31 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
+        {/* Desktop Navigation Links */}
+        <div className="hidden md:flex items-center gap-6">
           <button 
-            onClick={() => onViewChange('HOME')}
+            onClick={() => handleNavClick('HOME')}
             className={`text-sm font-semibold transition-colors ${currentView === 'HOME' ? '' : 'text-gray-600 hover:text-gray-900'}`}
             style={currentView === 'HOME' ? { color: '#ee4923' } : {}}
           >
             HOME
           </button>
           <button 
-            onClick={() => onViewChange('CLIENT')}
-            className={`hidden md:block text-sm font-semibold transition-colors ${currentView === 'CLIENT' ? '' : 'text-gray-600 hover:text-gray-900'}`}
+            onClick={() => handleNavClick('CLIENT')}
+            className={`text-sm font-semibold transition-colors ${currentView === 'CLIENT' ? '' : 'text-gray-600 hover:text-gray-900'}`}
             style={currentView === 'CLIENT' ? { color: '#ee4923' } : {}}
           >
             BOOK NOW
           </button>
           <button 
-             onClick={() => onViewChange('SERVICES')}
-             className={`hidden md:block text-sm font-semibold transition-colors ${currentView === 'SERVICES' ? '' : 'text-gray-600 hover:text-gray-900'}`}
+             onClick={() => handleNavClick('SERVICES')}
+             className={`text-sm font-semibold transition-colors ${currentView === 'SERVICES' ? '' : 'text-gray-600 hover:text-gray-900'}`}
              style={currentView === 'SERVICES' ? { color: '#ee4923' } : {}}
           >
             SERVICES & RATES
           </button>
           <button 
-             onClick={() => onViewChange('STATUS')}
+             onClick={() => handleNavClick('STATUS')}
              className={`text-sm font-semibold transition-colors ${currentView === 'STATUS' ? '' : 'text-gray-600 hover:text-gray-900'}`}
              style={currentView === 'STATUS' ? { color: '#ee4923' } : {}}
           >
@@ -61,7 +69,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
           
           {!user ? (
             <button
-              onClick={() => onViewChange('AUTH')}
+              onClick={() => handleNavClick('AUTH')}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
                 currentView === 'AUTH'
                   ? 'text-white'
@@ -76,7 +84,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
             <div className="flex items-center gap-2">
               {user.isStaff && (
                 <button
-                  onClick={() => onViewChange('ADMIN')}
+                  onClick={() => handleNavClick('ADMIN')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
                     currentView === 'ADMIN'
                       ? 'text-white'
@@ -90,7 +98,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
               )}
               {!user.isStaff && (
                 <button
-                  onClick={() => onViewChange('PROFILE')}
+                  onClick={() => handleNavClick('PROFILE')}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-all ${
                     currentView === 'PROFILE'
                       ? 'bg-orange-50 text-orange-600'
@@ -99,27 +107,115 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   title="My Profile"
                 >
                   <UserCircle2 size={18} className={currentView === 'PROFILE' ? 'text-orange-500' : 'text-gray-400'} />
-                  <span className="hidden md:inline">{user.name}</span>
+                  <span>{user.name}</span>
                 </button>
               )}
               {user.isStaff && (
                 <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
                   <UserCircle2 size={18} className="text-gray-400" />
-                  <span className="hidden md:inline">{user.name}</span>
+                  <span>{user.name}</span>
                 </div>
               )}
               <button
-                onClick={onLogout}
+                onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all"
                 title="Logout"
               >
                 <LogOut size={16} />
-                <span className="hidden md:inline">LOGOUT</span>
+                <span>LOGOUT</span>
               </button>
             </div>
           )}
         </div>
+
+        {/* Mobile Hamburger Button */}
+        <div className="md:hidden flex items-center">
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="text-gray-600 hover:text-gray-900 focus:outline-none p-2"
+          >
+            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-white border-b border-gray-100 px-4 pt-2 pb-4 space-y-1 shadow-md">
+          <button 
+            onClick={() => handleNavClick('HOME')}
+            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'HOME' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
+          >
+            HOME
+          </button>
+          <button 
+            onClick={() => handleNavClick('CLIENT')}
+            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'CLIENT' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
+          >
+            BOOK NOW
+          </button>
+          <button 
+            onClick={() => handleNavClick('SERVICES')}
+            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'SERVICES' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
+          >
+            SERVICES & RATES
+          </button>
+          <button 
+            onClick={() => handleNavClick('STATUS')}
+            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'STATUS' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
+          >
+            CHECK STATUS
+          </button>
+
+          <div className="border-t border-gray-100 my-2 pt-2">
+            {!user ? (
+              <button
+                onClick={() => handleNavClick('AUTH')}
+                className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-bold bg-gray-900 text-white hover:bg-orange-600 transition-colors"
+                style={currentView === 'AUTH' ? { backgroundColor: '#ee4923' } : {}}
+              >
+                <LogIn size={18} />
+                LOGIN / SIGN UP
+              </button>
+            ) : (
+              <div className="space-y-2">
+                {user.isStaff && (
+                  <button
+                    onClick={() => handleNavClick('ADMIN')}
+                    className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-bold bg-gray-900 text-white hover:bg-orange-600 transition-colors"
+                    style={currentView === 'ADMIN' ? { backgroundColor: '#383838' } : {}}
+                  >
+                    <LayoutDashboard size={18} />
+                    ADMIN PANEL
+                  </button>
+                )}
+                {!user.isStaff && (
+                  <button
+                    onClick={() => handleNavClick('PROFILE')}
+                    className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-semibold bg-orange-50 text-orange-600"
+                  >
+                    <UserCircle2 size={20} />
+                    <span>My Profile ({user.name})</span>
+                  </button>
+                )}
+                {user.isStaff && (
+                  <div className="flex items-center gap-2 w-full px-3 py-2 text-sm font-semibold text-gray-600">
+                    <UserCircle2 size={18} />
+                    <span>{user.name}</span>
+                  </div>
+                )}
+                <button
+                  onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
+                  className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>LOGOUT</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
