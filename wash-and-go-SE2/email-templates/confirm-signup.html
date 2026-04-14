@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wash & Go - Confirm Email</title>
+  </head>
+  <body style="margin:0;padding:24px;background:#f2f4f7;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" style="max-width:600px;width:100%;margin:0 auto;border-collapse:collapse;">
+      <tr>
+        <td style="background:#1a1a1a;padding:28px 24px;text-align:center;border-top-left-radius:14px;border-top-right-radius:14px;">
+          <div style="font-size:44px;line-height:1;font-weight:800;letter-spacing:2px;color:#ffffff;">
+            WASH <span style="color:#ee4923;">&amp;</span> GO
+          </div>
+          <div style="margin-top:8px;color:#c8c8c8;font-size:12px;letter-spacing:2px;text-transform:uppercase;">
+            Auto Salon Â· Baliwag Branch
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#ffffff;padding:30px 24px;">
+          <p style="margin:0 0 12px;font-size:16px;color:#1f2937;">Hi {{FULL_NAME}},</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4b5563;">
+            Thanks for signing up at Wash &amp; Go. Confirm your email to activate your account and start booking services.
+          </p>
+          <p style="margin:0 0 18px;text-align:center;">
+            <a href="{{CONFIRMATION_URL}}" style="display:inline-block;background:#ee4923;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 24px;border-radius:10px;">
+              CONFIRM EMAIL
+            </a>
+          </p>
+          <p style="margin:0 0 8px;font-size:12px;color:#6b7280;">If the button does not work, open this link:</p>
+          <p style="margin:0 0 14px;word-break:break-all;font-size:12px;line-height:1.6;color:#374151;">
+            <a href="{{CONFIRMATION_URL}}" style="color:#ee4923;text-decoration:none;">{{CONFIRMATION_URL}}</a>
+          </p>
+          <p style="margin:0;font-size:12px;color:#6b7280;">This email was sent to {{EMAIL}}.</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="background:#1a1a1a;padding:16px 24px;text-align:center;border-bottom-left-radius:14px;border-bottom-right-radius:14px;color:#9ca3af;font-size:11px;">
+          Â© Wash &amp; Go Auto Salon Â· Baliwag Branch
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+

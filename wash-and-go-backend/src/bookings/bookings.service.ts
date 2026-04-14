@@ -4,13 +4,20 @@ import {
   ConflictException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private supabase: SupabaseService) {}
+  private readonly logger = new Logger(BookingsService.name);
+
+  constructor(
+    private supabase: SupabaseService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async create(dto: CreateBookingDto, userId?: string) {
     // 1. Fetch service
@@ -75,7 +82,10 @@ export class BookingsService {
       .single();
 
     if (error) throw new Error(error.message);
-    return this.toBooking(data);
+    const booking = this.toBooking(data);
+
+    void this.notifyBookingCreated(booking, dto.customerName, userId);
+    return booking;
   }
 
   async findById(id: string) {
@@ -90,7 +100,21 @@ export class BookingsService {
     return this.toBooking(data);
   }
 
-  async findAll(filters?: { status?: string; date?: string }) {
+  async findAll(
+    filters?: { status?: string; date?: string },
+    requestingUserId?: string,
+  ) {
+    const { data: profile } = await this.supabase
+      .getAdminClient()
+      .from('profiles')
+      .select('role')
+      .eq('id', requestingUserId)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      throw new ForbiddenException('Only admins can view all bookings');
+    }
+
     let query = this.supabase
       .getAdminClient()
       .from('bookings')
@@ -197,7 +221,9 @@ export class BookingsService {
       throw new NotFoundException(`Booking ${id.toUpperCase()} not found`);
     }
 
-    return this.toBooking(data);
+    const booking = this.toBooking(data);
+    void this.notifyBookingStatusUpdated(booking, data.user_id);
+    return booking;
   }
 
   async checkAvailability(date: string, timeSlot: string, category?: string) {
@@ -225,6 +251,67 @@ export class BookingsService {
 
     const { data } = await query;
     return !data || data.length < maxCapacity;
+  }
+
+  private async notifyBookingCreated(
+    booking: any,
+    customerName: string,
+    userId?: string,
+  ) {
+    try {
+      const customerEmail = await this.getUserEmail(userId);
+      if (customerEmail) {
+        await this.emailService.sendBookingCreatedCustomerEmail({
+          to: customerEmail,
+          customerName,
+          bookingId: booking.id,
+          serviceName: booking.serviceName,
+          date: booking.date,
+          timeSlot: booking.timeSlot,
+          status: booking.status,
+        });
+      }
+
+      await this.emailService.sendBookingCreatedAdminEmail({
+        customerName,
+        bookingId: booking.id,
+        serviceName: booking.serviceName,
+        date: booking.date,
+        timeSlot: booking.timeSlot,
+        status: booking.status,
+      });
+    } catch (error: any) {
+      this.logger.warn(`Booking created email notification failed: ${error?.message || error}`);
+    }
+  }
+
+  private async notifyBookingStatusUpdated(booking: any, userId?: string) {
+    try {
+      const customerEmail = await this.getUserEmail(userId);
+      if (!customerEmail) return;
+
+      await this.emailService.sendBookingStatusEmail({
+        to: customerEmail,
+        customerName: booking.customerName,
+        bookingId: booking.id,
+        serviceName: booking.serviceName,
+        date: booking.date,
+        timeSlot: booking.timeSlot,
+        status: booking.status,
+      });
+    } catch (error: any) {
+      this.logger.warn(`Booking status email notification failed: ${error?.message || error}`);
+    }
+  }
+
+  private async getUserEmail(userId?: string): Promise<string | undefined> {
+    if (!userId) return undefined;
+    const { data, error } = await this.supabase
+      .getAdminClient()
+      .auth.admin.getUserById(userId);
+
+    if (error || !data?.user?.email) return undefined;
+    return data.user.email;
   }
 
   private toBooking(row: any) {

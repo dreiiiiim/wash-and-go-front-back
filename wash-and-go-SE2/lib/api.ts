@@ -16,6 +16,18 @@ function authHeaders(token: string) {
 }
 
 export const api = {
+  signup: (dto: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone?: string;
+    redirectTo?: string;
+  }) =>
+    request<{ message: string }>('/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto),
+    }),
   // ── Services ──────────────────────────────────────────────
   getServices: () => request<any[]>('/services'),
 

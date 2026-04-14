@@ -101,12 +101,13 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   onClick={() => handleNavClick('PROFILE')}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold transition-all ${
                     currentView === 'PROFILE'
-                      ? 'bg-orange-50 text-orange-600'
+                      ? ''
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
+                  style={currentView === 'PROFILE' ? { backgroundColor: '#fff5f2', color: 'var(--brand-orange)' } : {}}
                   title="My Profile"
                 >
-                  <UserCircle2 size={18} className={currentView === 'PROFILE' ? 'text-orange-500' : 'text-gray-400'} />
+                  <UserCircle2 size={18} style={currentView === 'PROFILE' ? { color: 'var(--brand-orange)' } : { color: '#9ca3af' }} />
                   <span>{user.name}</span>
                 </button>
               )}
@@ -142,37 +143,33 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
       {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 px-4 pt-2 pb-4 space-y-1 shadow-md">
-          <button 
-            onClick={() => handleNavClick('HOME')}
-            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'HOME' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
-          >
-            HOME
-          </button>
-          <button 
-            onClick={() => handleNavClick('CLIENT')}
-            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'CLIENT' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
-          >
-            BOOK NOW
-          </button>
-          <button 
-            onClick={() => handleNavClick('SERVICES')}
-            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'SERVICES' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
-          >
-            SERVICES & RATES
-          </button>
-          <button 
-            onClick={() => handleNavClick('STATUS')}
-            className={`block w-full text-left px-3 py-3 rounded-lg text-base font-semibold ${currentView === 'STATUS' ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50'}`}
-          >
-            CHECK STATUS
-          </button>
+          {(['HOME', 'CLIENT', 'SERVICES', 'STATUS'] as const).map((v, i) => {
+            const labels = ['HOME', 'BOOK NOW', 'SERVICES & RATES', 'CHECK STATUS'];
+            const views: ViewType[] = ['HOME', 'CLIENT', 'SERVICES', 'STATUS'];
+            const isActive = currentView === views[i];
+            return (
+              <button
+                key={v}
+                onClick={() => handleNavClick(views[i])}
+                className="block w-full text-left px-3 py-3 rounded-lg text-base font-semibold transition-colors"
+                style={isActive
+                  ? { backgroundColor: '#fff5f2', color: 'var(--brand-orange)' }
+                  : { color: '#374151' }
+                }
+              >
+                {labels[i]}
+              </button>
+            );
+          })}
 
           <div className="border-t border-gray-100 my-2 pt-2">
             {!user ? (
               <button
                 onClick={() => handleNavClick('AUTH')}
-                className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-bold bg-gray-900 text-white hover:bg-orange-600 transition-colors"
-                style={currentView === 'AUTH' ? { backgroundColor: '#ee4923' } : {}}
+                className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-bold text-white transition-colors"
+                style={{ backgroundColor: currentView === 'AUTH' ? 'var(--brand-orange)' : 'var(--brand-dark)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--brand-orange)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = currentView === 'AUTH' ? 'var(--brand-orange)' : 'var(--brand-dark)'; }}
               >
                 <LogIn size={18} />
                 LOGIN / SIGN UP
@@ -182,8 +179,10 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                 {user.isStaff && (
                   <button
                     onClick={() => handleNavClick('ADMIN')}
-                    className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-bold bg-gray-900 text-white hover:bg-orange-600 transition-colors"
-                    style={currentView === 'ADMIN' ? { backgroundColor: '#383838' } : {}}
+                    className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-bold text-white transition-colors"
+                    style={{ backgroundColor: 'var(--brand-dark)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--brand-orange)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--brand-dark)'; }}
                   >
                     <LayoutDashboard size={18} />
                     ADMIN PANEL
@@ -192,7 +191,8 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                 {!user.isStaff && (
                   <button
                     onClick={() => handleNavClick('PROFILE')}
-                    className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-semibold bg-orange-50 text-orange-600"
+                    className="flex items-center gap-2 w-full px-3 py-3 rounded-lg text-base font-semibold"
+                    style={{ backgroundColor: '#fff5f2', color: 'var(--brand-orange)' }}
                   >
                     <UserCircle2 size={20} />
                     <span>My Profile ({user.name})</span>

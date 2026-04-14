@@ -7,7 +7,6 @@ import {
   Body,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -19,11 +18,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class BookingsController {
   constructor(private bookingsService: BookingsService) {}
 
-  /** POST /api/bookings — Create booking (auth optional) */
+  /** POST /api/bookings — Create booking (auth required) */
+  @UseGuards(SupabaseAuthGuard)
   @Post()
-  create(@Body() dto: CreateBookingDto, @Request() req: any) {
-    const userId = req['user']?.id || null;
-    return this.bookingsService.create(dto, userId);
+  create(@Body() dto: CreateBookingDto, @CurrentUser() user: any) {
+    return this.bookingsService.create(dto, user.id);
   }
 
   /** GET /api/bookings/booked-slots?date=YYYY-MM-DD&category=LUBE — Booked time slots for a date */
@@ -64,8 +63,9 @@ export class BookingsController {
   findAll(
     @Query('status') status?: string,
     @Query('date') date?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.bookingsService.findAll({ status, date });
+    return this.bookingsService.findAll({ status, date }, user?.id);
   }
 
   /** PATCH /api/bookings/:id/status — Update status (admin only) */

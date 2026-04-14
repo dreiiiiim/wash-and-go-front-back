@@ -1,3 +1,9 @@
+/* Brand color variables */
+:root {
+  --brand-orange: #ee4923;
+  --brand-dark: #383838;
+}
+
 /* Only keyframes that Tailwind CSS cannot generate */
 @keyframes scroll-logos {
   0% { transform: translateX(0); }

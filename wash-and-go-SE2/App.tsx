@@ -42,9 +42,9 @@ export default function App() {
       if (session) handleSession(session);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        handleSession(session);
+        handleSession(session, event);
       } else {
         setUser(null);
         setToken(null);
@@ -56,7 +56,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSession = async (session: any) => {
+  const handleSession = async (session: any, event?: string) => {
     const supabaseUser = session.user;
     const accessToken = session.access_token;
     setToken(accessToken);
@@ -76,6 +76,12 @@ export default function App() {
     };
 
     setUser(appUser);
+
+    // Navigate to the correct view on new sign-in (covers Google OAuth redirect + email login)
+    if (event === 'SIGNED_IN') {
+      setView(isStaff ? 'ADMIN' : 'PROFILE');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     // If admin, fetch all bookings; if customer, fetch their own
     if (isStaff) {
@@ -169,7 +175,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentView={view} onViewChange={handleViewChange} user={user} onLogout={handleLogout} />
 
-      <main className={`flex-grow ${view !== 'HOME' ? 'container mx-auto px-4 py-8' : ''}`}>
+      <main className={`flex-grow ${view !== 'HOME' && view !== 'AUTH' ? 'container mx-auto px-4 py-8' : ''}`}>
         {view === 'HOME' && <HomePage onViewChange={handleViewChange} />}
         {view === 'AUTH' && <AuthPage onAuthSuccess={handleAuthSuccess} />}
         {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} services={services} />}
@@ -195,7 +201,7 @@ export default function App() {
         )}
       </main>
 
-      <footer style={{ backgroundColor: '#1a1a1a' }}>
+      {view !== 'AUTH' && <footer style={{ backgroundColor: '#1a1a1a' }}>
         {/* Main Footer Content */}
         <div className="max-w-6xl mx-auto px-6 py-14 grid grid-cols-1 md:grid-cols-3 gap-12">
           
@@ -303,7 +309,7 @@ export default function App() {
             <p className="text-gray-500 text-xs">&copy; {new Date().getFullYear()} Wash &amp; Go Auto Salon Baliwag Branch. All rights reserved.</p>
           </div>
         </div>
-      </footer>
+      </footer>}
     </div>
   );
 }

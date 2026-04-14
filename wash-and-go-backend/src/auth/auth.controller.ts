@@ -1,12 +1,18 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { EmailSignupDto } from './dto/email-signup.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  @Post('signup')
+  async signup(@Body() dto: EmailSignupDto) {
+    return this.authService.signUpWithEmail(dto);
+  }
 
   /**
    * GET /api/auth/google

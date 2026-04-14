@@ -13,7 +13,7 @@ export default function ServicesAndRates({ onBookNow, services = SERVICES }: Ser
     services.find(s => s.id === id) ?? (SERVICES.find(s => s.id === id) as ServicePackage);
 
   const fmt = (n: number | undefined) =>
-    n !== undefined ? n.toLocaleString() : '—';
+    n !== undefined ? `₱${n.toLocaleString()}` : '-';
 
   const lubeExpressGas    = svc('lube-express-gas');
   const lubeExpressDiesel = svc('lube-express-diesel');
@@ -61,13 +61,11 @@ export default function ServicesAndRates({ onBookNow, services = SERVICES }: Ser
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 text-center hover:border-orange-500 transition-colors">
                 <div className="font-black text-gray-900 text-xl mb-1">GAS</div>
                 <div className="text-xs text-gray-500 font-bold mb-4">4 LITERS</div>
-                <div className="text-sm text-gray-400">PHP</div>
                 <div className="text-4xl font-black text-gray-900">{fmt(lubeExpressGas?.lubePrices?.GAS ?? lubeExpressGas?.prices?.SMALL)}</div>
               </div>
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 text-center hover:border-orange-500 transition-colors">
                 <div className="font-black text-gray-900 text-xl mb-1">DIESEL</div>
                 <div className="text-xs text-gray-500 font-bold mb-4">7 LITERS</div>
-                <div className="text-sm text-gray-400">PHP</div>
                 <div className="text-4xl font-black text-gray-900">{fmt(lubeExpressDiesel?.lubePrices?.DIESEL ?? lubeExpressDiesel?.prices?.SMALL)}</div>
               </div>
             </div>
