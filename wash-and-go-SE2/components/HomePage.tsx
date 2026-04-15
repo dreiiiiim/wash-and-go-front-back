@@ -20,13 +20,9 @@ import ppfLogo    from "../assets/ppf.png";
 import iglLogo    from "../assets/unnamed.png";
 import wurthLogo  from "../assets/wurth-logo.png";
 
-/* ─── Injected styles (fonts + carousel keyframe) ─── */
+/* ─── Injected styles (carousel keyframe only — Lovelo loaded globally) ─── */
 const FontStyle = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-    .font-syne    { font-family: 'Syne', sans-serif; }
-    .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
-
     @keyframes ticker-ltr {
       0%   { transform: translateX(-50%); }
       100% { transform: translateX(0%);   }
@@ -62,7 +58,7 @@ const Hero = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => (
         className="inline-flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/12 rounded-full px-4 py-1.5 mb-8"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-[#ee4923] animate-pulse" />
-        <span className="text-gray-300 text-xs font-jakarta font-medium tracking-wider uppercase">
+        <span className="text-gray-300 text-xs font-lovelo font-medium tracking-wider uppercase">
           Premium Auto Salon — Baliuag
         </span>
       </motion.div>
@@ -71,7 +67,7 @@ const Hero = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => (
         initial={{ opacity: 0, y: 32 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="font-syne text-[clamp(2.8rem,8vw,5.5rem)] font-extrabold text-white mb-6 leading-[1.05] tracking-tight"
+        className="font-lovelo text-[clamp(2.8rem,8vw,5.5rem)] font-extrabold text-white mb-6 leading-[1.05] tracking-tight"
       >
         Keep Your Car Clean
         <br />
@@ -82,7 +78,7 @@ const Hero = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => (
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
-        className="font-jakarta text-gray-300 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed"
+        className="font-lovelo text-gray-300 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed"
       >
         Wash &amp; Go is a premium car care brand that restores and maintains
         automotive vehicles so they look, feel, and smell brand new.
@@ -96,14 +92,14 @@ const Hero = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => (
       >
         <button
           onClick={() => onViewChange('CLIENT')}
-          className="group bg-[#ee4923] hover:bg-[#d43d1a] text-white px-10 py-4 rounded-full font-jakarta font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-orange-900/40 flex items-center gap-2"
+          className="group bg-[#ee4923] hover:bg-[#d43d1a] text-white px-10 py-4 rounded-full font-lovelo font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-orange-900/40 flex items-center gap-2"
         >
           Book Now
           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
         </button>
         <button
           onClick={() => onViewChange('SERVICES')}
-          className="font-jakarta text-gray-300 hover:text-white text-sm font-medium flex items-center gap-2 group transition-colors duration-200"
+          className="font-lovelo text-gray-300 hover:text-white text-sm font-medium flex items-center gap-2 group transition-colors duration-200"
         >
           View Services
           <span className="w-8 h-px bg-gray-500 group-hover:bg-white group-hover:w-12 transition-all duration-300" />
@@ -133,7 +129,7 @@ const partnerLogos = [
 
 const BrandLogos = () => (
   <div className="bg-white py-12 border-y border-gray-100 overflow-hidden">
-    <p className="text-center font-jakarta text-[10px] font-semibold tracking-[0.35em] text-gray-400 uppercase mb-8">
+    <p className="text-center font-lovelo text-[10px] font-semibold tracking-[0.35em] text-gray-400 uppercase mb-8">
       Our Trusted Partners
     </p>
     <div className="overflow-hidden">
@@ -175,10 +171,10 @@ const Services = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => 
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <span className="font-jakarta text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-3 block">
+          <span className="font-lovelo text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-3 block">
             What We Offer
           </span>
-          <h2 className="font-syne text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
+          <h2 className="font-lovelo text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
             Our Services
           </h2>
         </motion.div>
@@ -197,8 +193,8 @@ const Services = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => 
               <div className="w-12 h-12 bg-orange-50 text-[#ee4923] rounded-xl flex items-center justify-center mb-5 group-hover:bg-[#ee4923] group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-orange-200">
                 {svc.icon}
               </div>
-              <h3 className="font-syne text-lg font-bold text-gray-900 mb-2">{svc.title}</h3>
-              <p className="font-jakarta text-gray-500 text-sm leading-relaxed">{svc.desc}</p>
+              <h3 className="font-lovelo text-lg font-bold text-gray-900 mb-2">{svc.title}</h3>
+              <p className="font-lovelo text-gray-500 text-sm leading-relaxed">{svc.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -232,22 +228,22 @@ const WhyChooseUs = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) 
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
-            <span className="font-jakarta text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-4 block">
+            <span className="font-lovelo text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-4 block">
               Our Promise
             </span>
-            <h2 className="font-syne text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
+            <h2 className="font-lovelo text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
               Why Choose
               <br />
               Wash &amp; Go?
             </h2>
-            <p className="font-jakarta text-gray-500 text-base mb-10 leading-relaxed max-w-md">
+            <p className="font-lovelo text-gray-500 text-base mb-10 leading-relaxed max-w-md">
               We don't just wash cars — we restore them. Our commitment to excellence
               guarantees you'll drive away with a vehicle that looks, feels, and smells
               brand new.
             </p>
             <button
               onClick={() => onViewChange('CLIENT')}
-              className="group bg-[#ee4923] hover:bg-[#d43d1a] text-white px-8 py-4 rounded-xl font-jakarta font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-orange-200 flex items-center gap-2"
+              className="group bg-[#ee4923] hover:bg-[#d43d1a] text-white px-8 py-4 rounded-xl font-lovelo font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-orange-200 flex items-center gap-2"
             >
               Book Your Slot
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
@@ -275,8 +271,8 @@ const WhyChooseUs = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) 
                     transition-all duration-300 shadow-sm group-hover:shadow-orange-200">
                     {f.icon}
                   </div>
-                  <h4 className="font-syne font-bold text-gray-900 text-sm mb-1.5">{f.title}</h4>
-                  <p className="font-jakarta text-gray-500 text-xs leading-relaxed">{f.desc}</p>
+                  <h4 className="font-lovelo font-bold text-gray-900 text-sm mb-1.5">{f.title}</h4>
+                  <p className="font-lovelo text-gray-500 text-xs leading-relaxed">{f.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -307,7 +303,7 @@ const HowItWorks = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
-          className="font-jakarta text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-4 block"
+          className="font-lovelo text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-4 block"
         >
           Simple Process
         </motion.span>
@@ -315,7 +311,7 @@ const HowItWorks = () => {
           initial={{ opacity: 0, y: 18 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="font-syne text-4xl md:text-5xl font-extrabold mb-20 tracking-tight"
+          className="font-lovelo text-4xl md:text-5xl font-extrabold mb-20 tracking-tight"
         >
           How It Works
         </motion.h2>
@@ -347,12 +343,12 @@ const HowItWorks = () => {
                 transition={{ duration: 0.5, delay: 0.4 + idx * 0.22, ease: "backOut" }}
                 className="w-[76px] h-[76px] bg-[#ee4923] rounded-2xl flex items-center justify-center mx-auto mb-7 shadow-xl shadow-orange-900/35 group-hover:scale-110 group-hover:shadow-orange-500/50 transition-all duration-300"
               >
-                <span className="font-syne text-2xl font-extrabold text-white">{step.number}</span>
+                <span className="font-lovelo text-2xl font-extrabold text-white">{step.number}</span>
               </motion.div>
-              <h3 className="font-syne text-base font-bold mb-2 group-hover:text-[#ee4923] transition-colors duration-200">
+              <h3 className="font-lovelo text-base font-bold mb-2 group-hover:text-[#ee4923] transition-colors duration-200">
                 {step.title}
               </h3>
-              <p className="font-jakarta text-gray-400 text-sm leading-relaxed max-w-[150px] mx-auto">
+              <p className="font-lovelo text-gray-400 text-sm leading-relaxed max-w-[150px] mx-auto">
                 {step.desc}
               </p>
               {idx < steps.length - 1 && (
@@ -384,15 +380,15 @@ const CTA = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => {
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/8" />
           <div className="absolute -bottom-20 -left-12 w-80 h-80 rounded-full bg-black/10" />
           <div className="relative z-10">
-            <h2 className="font-syne text-3xl md:text-[2.75rem] font-extrabold mb-3 tracking-tight leading-tight">
+            <h2 className="font-lovelo text-3xl md:text-[2.75rem] font-extrabold mb-3 tracking-tight leading-tight">
               Give Your Car the Care It Deserves
             </h2>
-            <p className="font-jakarta text-orange-100 text-base mb-10 max-w-md mx-auto">
+            <p className="font-lovelo text-orange-100 text-base mb-10 max-w-md mx-auto">
               Book your slot today and drive away with a showroom-fresh finish.
             </p>
             <button
               onClick={() => onViewChange('CLIENT')}
-              className="group bg-white text-[#ee4923] hover:bg-[#383838] hover:text-white px-12 py-4 rounded-full font-jakarta font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl inline-flex items-center gap-2"
+              className="group bg-white text-[#ee4923] hover:bg-[#383838] hover:text-white px-12 py-4 rounded-full font-lovelo font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl inline-flex items-center gap-2"
             >
               Book Now
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />

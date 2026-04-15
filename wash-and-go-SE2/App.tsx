@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
 import BookingWizard from './components/BookingWizard';
@@ -29,6 +29,10 @@ export default function App() {
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loadingUserBookings, setLoadingUserBookings] = useState(false);
 
+  // Track whether user is already authenticated so token refreshes (which also
+  // fire SIGNED_IN) don't redirect away from whatever page the user is on.
+  const isAuthenticatedRef = useRef(false);
+
   // Fetch live service prices on mount
   useEffect(() => {
     api.getServices()
@@ -50,6 +54,7 @@ export default function App() {
         setToken(null);
         setBookings([]);
         setUserBookings([]);
+        isAuthenticatedRef.current = false;
       }
     });
 
@@ -77,11 +82,13 @@ export default function App() {
 
     setUser(appUser);
 
-    // Navigate to the correct view on new sign-in (covers Google OAuth redirect + email login)
-    if (event === 'SIGNED_IN') {
+    // Only navigate on a genuine new sign-in (user was logged out before).
+    // Supabase v2 also fires SIGNED_IN on token refresh (tab refocus) — ignore those.
+    if (event === 'SIGNED_IN' && !isAuthenticatedRef.current) {
       setView(isStaff ? 'ADMIN' : 'PROFILE');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    isAuthenticatedRef.current = true;
 
     // If admin, fetch all bookings; if customer, fetch their own
     if (isStaff) {
@@ -162,7 +169,7 @@ export default function App() {
   };
 
   const handleViewChange = (newView: ViewType) => {
-    if (newView === 'CLIENT' && !user) {
+    if ((newView === 'CLIENT' || newView === 'STATUS') && !user) {
       setView('AUTH');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -175,12 +182,19 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentView={view} onViewChange={handleViewChange} user={user} onLogout={handleLogout} />
 
-      <main className={`flex-grow ${view !== 'HOME' && view !== 'AUTH' ? 'container mx-auto px-4 py-8' : ''}`}>
+      <main className="flex-grow">
         {view === 'HOME' && <HomePage onViewChange={handleViewChange} />}
         {view === 'AUTH' && <AuthPage onAuthSuccess={handleAuthSuccess} />}
         {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} services={services} />}
         {view === 'SERVICES' && <ServicesAndRates onBookNow={() => handleViewChange('CLIENT')} services={services} />}
-        {view === 'STATUS' && <CheckStatus />}
+        {view === 'STATUS' && (
+          <CheckStatus
+            user={user}
+            userBookings={userBookings}
+            loading={loadingUserBookings}
+            onRefresh={user ? () => loadUserBookings() : undefined}
+          />
+        )}
         {view === 'PROFILE' && user && (
           <UserProfile
             user={user}

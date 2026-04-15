@@ -50,8 +50,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
     <>
       {/* ── Injected styles ── */}
       <style>{`
-        .nav-syne    { font-family: 'Syne', sans-serif; }
-        .nav-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-lovelo { font-family: 'Lovelo', sans-serif; }
 
         /* Gradient accent strip */
         .nav-accent-bar {
@@ -141,13 +140,13 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
               />
               <div className="text-left">
                 <p
-                  className="nav-syne font-bold text-sm leading-tight tracking-tight"
+                  className="font-lovelo font-bold text-sm leading-tight tracking-tight"
                   style={{ color: '#383838' }}
                 >
                   Wash &amp; Go Auto Salon
                 </p>
                 <p
-                  className="nav-jakarta text-[10px] font-semibold tracking-[0.18em] uppercase"
+                  className="font-lovelo text-[10px] font-semibold tracking-[0.18em] uppercase"
                   style={{ color: '#ee4923' }}
                 >
                   Baliuag Branch
@@ -165,7 +164,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                     <button
                       key={view}
                       onClick={() => handleNav(view)}
-                      className="btn-book nav-jakarta flex items-center gap-1.5 text-white text-[11px] font-bold tracking-wider uppercase rounded-full px-5 py-2.5 mx-1"
+                      className="btn-book font-lovelo flex items-center gap-1.5 text-white text-[11px] font-bold tracking-wider uppercase rounded-full px-5 py-2.5 mx-1"
                     >
                       {icon}
                       {label}
@@ -176,7 +175,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   <button
                     key={view}
                     onClick={() => handleNav(view)}
-                    className={`nav-link-ink nav-jakarta relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-semibold tracking-wider uppercase transition-colors duration-150 ${
+                    className={`nav-link-ink font-lovelo relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-semibold tracking-wider uppercase transition-colors duration-150 ${
                       isActive ? 'active' : ''
                     }`}
                     style={{ color: isActive ? '#ee4923' : '#383838' }}
@@ -193,7 +192,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
               {!user ? (
                 <button
                   onClick={() => handleNav('AUTH')}
-                  className="nav-jakarta flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-4 py-2.5 rounded-full border transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+                  className="font-lovelo flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-4 py-2.5 rounded-full border transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
                   style={{
                     color: currentView === 'AUTH' ? '#ffffff' : '#383838',
                     backgroundColor: currentView === 'AUTH' ? '#ee4923' : 'transparent',
@@ -209,7 +208,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   {user.isStaff && (
                     <button
                       onClick={() => handleNav('ADMIN')}
-                      className="nav-jakarta flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-4 py-2.5 rounded-full transition-all duration-150 hover:scale-[1.02]"
+                      className="font-lovelo flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-4 py-2.5 rounded-full transition-all duration-150 hover:scale-[1.02]"
                       style={{
                         color: currentView === 'ADMIN' ? '#ffffff' : '#383838',
                         backgroundColor: currentView === 'ADMIN' ? '#383838' : 'rgba(56,56,56,0.06)',
@@ -225,10 +224,10 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   {!user.isStaff && (
                     <button
                       onClick={() => handleNav('PROFILE')}
-                      className="user-pill nav-jakarta flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full transition-all duration-150"
+                      className="user-pill font-lovelo flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full transition-all duration-150"
                     >
                       <span
-                        className="nav-syne w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                        className="font-lovelo w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
                         style={{ background: 'linear-gradient(135deg,#ee4923,#F4921F)' }}
                       >
                         {initial}
@@ -246,12 +245,12 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   {user.isStaff && (
                     <div className="flex items-center gap-1.5 px-2">
                       <span
-                        className="nav-syne w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                        className="font-lovelo w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
                         style={{ background: 'linear-gradient(135deg,#383838,#555)' }}
                       >
                         {initial}
                       </span>
-                      <span className="nav-jakarta text-[11px] font-medium text-gray-500 max-w-[80px] truncate">
+                      <span className="font-lovelo text-[11px] font-medium text-gray-500 max-w-[80px] truncate">
                         {user.name}
                       </span>
                     </div>
@@ -260,7 +259,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   {/* Logout */}
                   <button
                     onClick={() => { onLogout(); setMobileOpen(false); }}
-                    className="nav-jakarta flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-3.5 py-2.5 rounded-full border border-gray-200 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-150"
+                    className="font-lovelo flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase px-3.5 py-2.5 rounded-full border border-gray-200 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-150"
                     title="Logout"
                   >
                     <LogOut className="w-3.5 h-3.5" />
@@ -298,7 +297,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   <button
                     key={view}
                     onClick={() => handleNav(view)}
-                    className="btn-book nav-jakarta w-full flex items-center justify-between text-white text-sm font-bold tracking-wide uppercase rounded-xl px-5 py-3.5 mt-2"
+                    className="btn-book font-lovelo w-full flex items-center justify-between text-white text-sm font-bold tracking-wide uppercase rounded-xl px-5 py-3.5 mt-2"
                   >
                     <span className="flex items-center gap-2">{icon}{label}</span>
                     <ChevronRight className="w-4 h-4 opacity-70" />
@@ -309,7 +308,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                 <button
                   key={view}
                   onClick={() => handleNav(view)}
-                  className="nav-jakarta w-full flex items-center justify-between text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 transition-all duration-150"
+                  className="font-lovelo w-full flex items-center justify-between text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 transition-all duration-150"
                   style={{
                     color: isActive ? '#ee4923' : '#383838',
                     backgroundColor: isActive ? 'rgba(238,73,35,0.07)' : 'transparent',
@@ -332,7 +331,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
               {!user ? (
                 <button
                   onClick={() => handleNav('AUTH')}
-                  className="nav-jakarta w-full flex items-center justify-between text-sm font-bold tracking-wide uppercase rounded-xl px-4 py-3.5 border transition-colors duration-150"
+                  className="font-lovelo w-full flex items-center justify-between text-sm font-bold tracking-wide uppercase rounded-xl px-4 py-3.5 border transition-colors duration-150"
                   style={{
                     color: '#383838',
                     borderColor: '#e5e7eb',
@@ -353,16 +352,16 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                     style={{ backgroundColor: 'rgba(56,56,56,0.04)' }}
                   >
                     <span
-                      className="nav-syne w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                      className="font-lovelo w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
                       style={{ background: user.isStaff ? 'linear-gradient(135deg,#383838,#555)' : 'linear-gradient(135deg,#ee4923,#F4921F)' }}
                     >
                       {initial}
                     </span>
                     <div>
-                      <p className="nav-jakarta text-sm font-semibold" style={{ color: '#383838' }}>
+                      <p className="font-lovelo text-sm font-semibold" style={{ color: '#383838' }}>
                         {user.name}
                       </p>
-                      <p className="nav-jakarta text-xs text-gray-400">
+                      <p className="font-lovelo text-xs text-gray-400">
                         {user.isStaff ? 'Admin' : 'Customer'}
                       </p>
                     </div>
@@ -371,7 +370,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   {user.isStaff && (
                     <button
                       onClick={() => handleNav('ADMIN')}
-                      className="nav-jakarta w-full flex items-center justify-between text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 transition-colors duration-150"
+                      className="font-lovelo w-full flex items-center justify-between text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 transition-colors duration-150"
                       style={{
                         color: currentView === 'ADMIN' ? '#ffffff' : '#383838',
                         backgroundColor: currentView === 'ADMIN' ? '#383838' : 'white',
@@ -389,7 +388,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
                   {!user.isStaff && (
                     <button
                       onClick={() => handleNav('PROFILE')}
-                      className="nav-jakarta w-full flex items-center justify-between text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 transition-colors duration-150"
+                      className="font-lovelo w-full flex items-center justify-between text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 transition-colors duration-150"
                       style={{
                         color: currentView === 'PROFILE' ? '#ee4923' : '#383838',
                         backgroundColor: currentView === 'PROFILE' ? 'rgba(238,73,35,0.07)' : 'white',
@@ -406,7 +405,7 @@ export default function Navbar({ currentView, onViewChange, user, onLogout }: Na
 
                   <button
                     onClick={() => { onLogout(); setMobileOpen(false); }}
-                    className="nav-jakarta w-full flex items-center gap-2.5 text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-150"
+                    className="font-lovelo w-full flex items-center gap-2.5 text-sm font-semibold tracking-wide uppercase rounded-xl px-4 py-3.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors duration-150"
                   >
                     <LogOut className="w-4 h-4" />
                     Logout
