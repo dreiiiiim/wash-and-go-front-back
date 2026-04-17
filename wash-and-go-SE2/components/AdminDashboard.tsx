@@ -21,9 +21,37 @@ interface AdminDashboardProps {
 interface ServiceDraft {
   name: string;
   description: string;
-  prices: Record<string, number>;
-  lubePrices: Record<string, number>;
+  prices: Record<string, string>;
+  lubePrices: Record<string, string>;
 }
+
+const priceToDraftValue = (value: unknown) =>
+  value === null || value === undefined || !Number.isFinite(Number(value)) ? '' : String(value);
+
+const pricesToDraftValues = (prices?: Record<string, number>) =>
+  Object.fromEntries(Object.entries(prices ?? {}).map(([key, value]) => [key, priceToDraftValue(value)]));
+
+const sanitizePriceInput = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '');
+  return digitsOnly.replace(/^0+(?=\d)/, '');
+};
+
+const draftPriceToNumber = (value: string | number | undefined) => {
+  if (value === undefined || value === '') return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const pricesAreEqual = (draftPrices: Record<string, string>, prices?: Record<string, number>) => {
+  const keys = new Set([...Object.keys(draftPrices), ...Object.keys(prices ?? {})]);
+  for (const key of keys) {
+    if (draftPriceToNumber(draftPrices[key]) !== (prices?.[key] ?? 0)) return false;
+  }
+  return true;
+};
+
+const draftPricesToNumbers = (draftPrices: Record<string, string>) =>
+  Object.fromEntries(Object.entries(draftPrices).map(([key, value]) => [key, draftPriceToNumber(value)]));
 
 // ─── Status Helpers ────────────────────────────────────────────────────────────
 const statusMeta: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
@@ -52,8 +80,8 @@ function initDraft(service: ServicePackage): ServiceDraft {
   return {
     name: service.name,
     description: service.description,
-    prices: { ...(service.prices as unknown as Record<string, number>) },
-    lubePrices: service.lubePrices ? { ...(service.lubePrices as unknown as Record<string, number>) } : {},
+    prices: pricesToDraftValues(service.prices as unknown as Record<string, number>),
+    lubePrices: service.lubePrices ? pricesToDraftValues(service.lubePrices as unknown as Record<string, number>) : {},
   };
 }
 
@@ -61,8 +89,8 @@ function draftIsDirty(draft: ServiceDraft, service: ServicePackage): boolean {
   return (
     draft.name !== service.name ||
     draft.description !== service.description ||
-    JSON.stringify(draft.prices) !== JSON.stringify(service.prices) ||
-    JSON.stringify(draft.lubePrices) !== JSON.stringify(service.lubePrices ?? {})
+    !pricesAreEqual(draft.prices, service.prices as unknown as Record<string, number>) ||
+    !pricesAreEqual(draft.lubePrices, service.lubePrices as unknown as Record<string, number> | undefined)
   );
 }
 
@@ -70,13 +98,13 @@ function buildDto(draft: ServiceDraft, service: ServicePackage): Record<string, 
   const dto: Record<string, any> = {
     name: draft.name,
     description: draft.description,
-    price_small: draft.prices[VehicleSize.SMALL],
-    price_medium: draft.prices[VehicleSize.MEDIUM],
-    price_large: draft.prices[VehicleSize.LARGE],
-    price_extra_large: draft.prices[VehicleSize.EXTRA_LARGE],
+    price_small: draftPriceToNumber(draft.prices[VehicleSize.SMALL]),
+    price_medium: draftPriceToNumber(draft.prices[VehicleSize.MEDIUM]),
+    price_large: draftPriceToNumber(draft.prices[VehicleSize.LARGE]),
+    price_extra_large: draftPriceToNumber(draft.prices[VehicleSize.EXTRA_LARGE]),
   };
   if (service.isLubeFlat && Object.keys(draft.lubePrices).length > 0) {
-    dto.lube_prices = draft.lubePrices;
+    dto.lube_prices = draftPricesToNumbers(draft.lubePrices);
   }
   return dto;
 }
@@ -90,8 +118,8 @@ const SIZE_LABELS: Record<string, string> = {
 interface PriceGridProps {
   service: ServicePackage;
   draft: ServiceDraft;
-  onPricesChange: (prices: Record<string, number>) => void;
-  onLubePricesChange: (lubePrices: Record<string, number>) => void;
+  onPricesChange: (prices: Record<string, string>) => void;
+  onLubePricesChange: (lubePrices: Record<string, string>) => void;
 }
 
 const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, onLubePricesChange }) => {
@@ -128,8 +156,11 @@ const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, o
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-lovelo text-xs text-gray-400 pointer-events-none z-10">₱</span>
                       <input
                         ref={el => { cellRefs.current[idx] = el; }}
-                        type="number" min={0} value={val}
-                        onChange={e => onLubePricesChange({ ...draft.lubePrices, [fuel]: Number(e.target.value) })}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={val}
+                        onChange={e => onLubePricesChange({ ...draft.lubePrices, [fuel]: sanitizePriceInput(e.target.value) })}
                         onKeyDown={e => handleKeyDown(e, idx, entries.length)}
                         className={cellClass}
                       />
@@ -169,8 +200,11 @@ const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, o
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 font-lovelo text-xs text-gray-400 pointer-events-none z-10">₱</span>
                     <input
                       ref={el => { cellRefs.current[idx] = el; }}
-                      type="number" min={0} value={draft.prices[size] ?? 0}
-                      onChange={e => onPricesChange({ ...draft.prices, [size]: Number(e.target.value) })}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={draft.prices[size] ?? ''}
+                      onChange={e => onPricesChange({ ...draft.prices, [size]: sanitizePriceInput(e.target.value) })}
                       onKeyDown={e => handleKeyDown(e, idx, SIZE_COLS.length)}
                       className={cellClass}
                     />
@@ -781,10 +815,11 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                     if (d.description !== s.description) changes.push(`Description changed`);
                     SIZE_COLS.forEach(size => {
                       const orig = (s.prices as unknown as Record<string, number>)[size] ?? 0;
-                      const next = d.prices[size] ?? 0;
+                      const next = draftPriceToNumber(d.prices[size]);
                       if (orig !== next) changes.push(`${SIZE_LABELS[size]}: ₱${orig.toLocaleString()} → ₱${next.toLocaleString()}`);
                     });
-                    Object.entries(d.lubePrices).forEach(([fuel, val]) => {
+                    Object.entries(d.lubePrices).forEach(([fuel, draftValue]) => {
+                      const val = draftPriceToNumber(draftValue);
                       const orig = (s.lubePrices as unknown as Record<string, number> | undefined)?.[fuel] ?? 0;
                       if (orig !== val) changes.push(`${fuel}: ₱${orig.toLocaleString()} → ₱${val.toLocaleString()}`);
                     });
