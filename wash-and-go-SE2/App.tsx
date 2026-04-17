@@ -28,6 +28,7 @@ export default function App() {
   const [services, setServices] = useState<ServicePackage[]>(SERVICES);
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loadingUserBookings, setLoadingUserBookings] = useState(false);
+  const [userBookingsError, setUserBookingsError] = useState<string | null>(null);
 
   // Track whether user is already authenticated so token refreshes (which also
   // fire SIGNED_IN) don't redirect away from whatever page the user is on.
@@ -54,6 +55,7 @@ export default function App() {
         setToken(null);
         setBookings([]);
         setUserBookings([]);
+        setUserBookingsError(null);
         isAuthenticatedRef.current = false;
       }
     });
@@ -108,8 +110,11 @@ export default function App() {
     try {
       const data = await api.getMyBookings(t);
       setUserBookings(data);
-    } catch {
-      // silently fail — UI shows empty state
+      setUserBookingsError(null);
+    } catch (err) {
+      console.error('Failed to load customer bookings', err);
+      setUserBookings([]);
+      setUserBookingsError('We could not load your bookings right now. Please refresh and try again.');
     } finally {
       setLoadingUserBookings(false);
     }
@@ -178,6 +183,8 @@ export default function App() {
     setUser(null);
     setToken(null);
     setBookings([]);
+    setUserBookings([]);
+    setUserBookingsError(null);
     setView('HOME');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -206,6 +213,7 @@ export default function App() {
             user={user}
             userBookings={userBookings}
             loading={loadingUserBookings}
+            loadError={userBookingsError}
             onRefresh={user ? () => loadUserBookings() : undefined}
           />
         )}
@@ -214,6 +222,7 @@ export default function App() {
             user={user}
             userBookings={userBookings}
             loading={loadingUserBookings}
+            loadError={userBookingsError}
             onRefresh={() => loadUserBookings()}
           />
         )}

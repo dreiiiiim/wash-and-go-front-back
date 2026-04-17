@@ -14,6 +14,7 @@ async function bootstrap() {
       .filter(Boolean),
     'http://localhost:3000',
     'https://wash-and-go-front-back-*.vercel.app',
+    'https://wash-and-go-front-back*.vercel.app',
   ]
     .filter(Boolean)
     .filter((origin, index, all) => all.indexOf(origin) === index);
@@ -43,7 +44,7 @@ async function bootstrap() {
       if (!origin) return callback(null, true);
       if (isAllowedOrigin(origin)) return callback(null, true);
 
-      logger.warn(`Blocked CORS origin: ${origin}`);
+      logger.warn(`Blocked CORS origin: ${origin} | allowed exact: ${exactOrigins.join(', ')} | wildcards: ${configuredOrigins.filter(o => o.includes('*')).join(', ')}`);
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,

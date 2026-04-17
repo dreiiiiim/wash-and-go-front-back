@@ -11,6 +11,7 @@ interface CheckStatusProps {
   user?: AppUser | null;
   userBookings?: Booking[];
   loading?: boolean;
+  loadError?: string | null;
   onRefresh?: () => void;
 }
 
@@ -122,7 +123,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking }) => {
   );
 };
 
-export default function CheckStatus({ user, userBookings = [], loading, onRefresh }: CheckStatusProps) {
+export default function CheckStatus({ user, userBookings = [], loading, loadError, onRefresh }: CheckStatusProps) {
   const [searchId, setSearchId]       = useState('');
   const [result, setResult]           = useState<Booking | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
@@ -304,6 +305,11 @@ export default function CheckStatus({ user, userBookings = [], loading, onRefres
             <div>
               <p className="font-lovelo text-[10px] font-black tracking-[0.25em] uppercase mb-1" style={{ color: '#ee4923' }}>My Account</p>
               <h2 className="font-lovelo font-black text-xl" style={{ color: '#383838' }}>My Bookings</h2>
+              {loadError && (
+                <p className="font-lovelo text-red-500 text-xs mt-1" style={{ fontWeight: 300 }}>
+                  {loadError}
+                </p>
+              )}
             </div>
             {onRefresh && (
               <button

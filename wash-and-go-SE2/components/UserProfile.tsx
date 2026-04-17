@@ -9,10 +9,11 @@ interface UserProfileProps {
   user: AppUser;
   userBookings: Booking[];
   loading?: boolean;
+  loadError?: string | null;
   onRefresh?: () => void;
 }
 
-export default function UserProfile({ user, userBookings, loading, onRefresh }: UserProfileProps) {
+export default function UserProfile({ user, userBookings, loading, loadError, onRefresh }: UserProfileProps) {
   const presentBookings = userBookings.filter(isActiveBooking);
   const pastBookings    = userBookings.filter(isPastBooking);
   const initial         = user.name?.charAt(0)?.toUpperCase() ?? '?';
@@ -68,6 +69,11 @@ export default function UserProfile({ user, userBookings, loading, onRefresh }: 
           <p className="font-lovelo text-gray-500 text-xs mt-6 text-center" style={{ fontWeight: 300 }}>
             To view your bookings, go to <span style={{ color: '#ee4923' }}>Check Status</span> in the navigation.
           </p>
+          {loadError && (
+            <p className="font-lovelo text-red-300 text-xs mt-3 text-center" style={{ fontWeight: 300 }}>
+              {loadError}
+            </p>
+          )}
         </div>
       </div>
     </div>
