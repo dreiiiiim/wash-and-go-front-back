@@ -8,4 +8,4 @@ cmds = ["cd wash-and-go-backend && npm ci"]
 cmds = ["cd wash-and-go-backend && npm run build"]
 
 [start]
-cmd = "cd wash-and-go-backend && npm run start:prod"
+cmd = "node wash-and-go-backend/dist/main"
