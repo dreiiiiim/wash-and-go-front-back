@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, Car, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Droplets, Car, ShieldCheck, ArrowRight } from 'lucide-react';
 import { SERVICES } from '../constants';
 import { ServicePackage } from '../types';
 
@@ -13,7 +13,7 @@ export default function ServicesAndRates({ onBookNow, services = SERVICES }: Ser
     services.find(s => s.id === id) ?? (SERVICES.find(s => s.id === id) as ServicePackage);
 
   const fmt = (n: number | undefined) =>
-    n !== undefined ? `₱${n.toLocaleString()}` : '—';
+    n !== undefined ? `₱${n.toLocaleString()}` : '-';
 
   const lubeExpressGas    = svc('lube-express-gas');
   const lubeExpressDiesel = svc('lube-express-diesel');
@@ -35,270 +35,187 @@ export default function ServicesAndRates({ onBookNow, services = SERVICES }: Ser
   const c5M = svc('ceramic-5yr-motorcycle');
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#f5f5f5' }}>
+    <div className="max-w-6xl mx-auto animate-fade-in space-y-12 pb-12">
+      <div className="text-center mb-10">
+        <h2 className="text-4xl font-black text-gray-900 italic uppercase mb-4">Services Offered</h2>
+        <p className="text-gray-500 max-w-2xl mx-auto mb-6">
+          Explore our premium auto detailing packages designed to protect and enhance your vehicle.
+        </p>
+      </div>
 
-      {/* ── Page Header ── */}
-      <div className="relative overflow-hidden py-14 px-4" style={{ background: 'linear-gradient(135deg, #383838 0%, #1a1a1a 100%)' }}>
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(45deg, #ee4923 0, #ee4923 1px, transparent 0, transparent 50%)', backgroundSize: '20px 20px' }} />
-        <div className="relative max-w-5xl mx-auto text-center">
-          <p className="text-xs font-lovelo font-bold tracking-[0.35em] uppercase mb-3" style={{ color: '#ee4923' }}>
-            Wash &amp; Go Auto Salon
-          </p>
-          <h1 className="font-lovelo text-4xl md:text-5xl font-black text-white mb-4 tracking-tight">
-            Services &amp; Rates
-          </h1>
-          <p className="font-lovelo text-gray-400 max-w-xl mx-auto text-sm leading-relaxed" style={{ fontWeight: 300 }}>
-            Premium auto care packages designed to protect, restore, and enhance your vehicle.
-          </p>
+      {/* LUBE & GO */}
+      <section className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div className="p-6 flex items-center justify-center gap-3" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}>
+          <Droplets className="text-white w-8 h-8" />
+          <h3 className="text-3xl font-black text-white italic tracking-wider">LUBE &amp; GO</h3>
         </div>
-      </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-12 space-y-10">
-
-        {/* ══ LUBE & GO ══ */}
-        <section className="rounded-3xl overflow-hidden shadow-lg border border-gray-200 bg-white">
-          {/* Section header */}
-          <div className="flex items-center gap-3 px-8 py-5" style={{ background: 'linear-gradient(135deg, #ee4923 0%, #F4921F 100%)' }}>
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Droplets className="text-white w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="font-lovelo text-2xl font-black text-white tracking-wide">LUBE &amp; GO</h2>
-              <p className="font-lovelo text-orange-100 text-xs" style={{ fontWeight: 300 }}>Oil change &amp; maintenance services</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
+          {/* Express */}
+          <div className="p-8">
+            <div className="bg-gray-800 text-white text-center py-2 font-bold text-xl uppercase tracking-widest mb-6 rounded">EXPRESS</div>
+            <p className="text-sm text-gray-500 text-center italic mb-6 px-4">
+              INCLUSIONS: Engine Oil, Oil Filter, Labor, FREE Standard Car Wash
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 text-center hover:border-orange-500 transition-colors">
+                <div className="font-black text-gray-900 text-xl mb-1">GAS</div>
+                <div className="text-xs text-gray-500 font-bold mb-4">4 LITERS</div>
+                <div className="text-4xl font-black text-gray-900">{fmt(lubeExpressGas?.lubePrices?.GAS ?? lubeExpressGas?.prices?.SMALL)}</div>
+              </div>
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 text-center hover:border-orange-500 transition-colors">
+                <div className="font-black text-gray-900 text-xl mb-1">DIESEL</div>
+                <div className="text-xs text-gray-500 font-bold mb-4">7 LITERS</div>
+                <div className="text-4xl font-black text-gray-900">{fmt(lubeExpressDiesel?.lubePrices?.DIESEL ?? lubeExpressDiesel?.prices?.SMALL)}</div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
-            {/* Express */}
-            <div className="p-8">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: '#383838' }} />
-                <h3 className="font-lovelo font-black text-base tracking-widest uppercase" style={{ color: '#383838' }}>Express</h3>
-              </div>
-              <p className="font-lovelo text-gray-400 text-xs mb-6 leading-relaxed" style={{ fontWeight: 300 }}>
-                Includes: Engine Oil · Oil Filter · Labor · <span className="font-bold text-gray-500">Free Standard Car Wash</span>
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { label: 'GAS', sub: '4 Liters', price: fmt(lubeExpressGas?.lubePrices?.GAS ?? lubeExpressGas?.prices?.SMALL) },
-                  { label: 'DIESEL', sub: '7 Liters', price: fmt(lubeExpressDiesel?.lubePrices?.DIESEL ?? lubeExpressDiesel?.prices?.SMALL) },
-                ].map(({ label, sub, price }) => (
-                  <div key={label} className="relative group rounded-2xl border-2 border-gray-100 hover:border-orange-300 p-5 text-center transition-all duration-200 hover:shadow-md">
-                    <p className="font-lovelo font-black text-sm tracking-widest mb-0.5" style={{ color: '#383838' }}>{label}</p>
-                    <p className="font-lovelo text-gray-400 text-[10px] mb-3 uppercase tracking-wider">{sub}</p>
-                    <p className="font-lovelo font-black text-3xl" style={{ color: '#ee4923' }}>{price}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Premium */}
-            <div className="p-8">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: '#ee4923' }} />
-                <h3 className="font-lovelo font-black text-base tracking-widest uppercase" style={{ color: '#383838' }}>Premium</h3>
-              </div>
-              <p className="font-lovelo text-gray-400 text-xs mb-6 leading-relaxed" style={{ fontWeight: 300 }}>
-                Includes: Engine Oil · Oil Filter · Labor · Engine Flushing · <span className="font-bold text-gray-500">Free Standard Car Wash</span>
-              </p>
-              <div className="overflow-hidden rounded-2xl border border-gray-100">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr style={{ backgroundColor: '#383838' }}>
-                      <th className="font-lovelo p-3 text-left text-white text-xs tracking-wider font-black">Type</th>
-                      <th className="font-lovelo p-3 text-center text-white text-xs font-black">
-                        GAS<div className="text-[9px] font-normal opacity-60">4L</div>
-                      </th>
-                      <th className="font-lovelo p-3 text-center text-white text-xs font-black">
-                        DIESEL<div className="text-[9px] font-normal opacity-60">7L</div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {[
-                      { label: 'Regular',        gas: lubePremRegular?.lubePrices?.GAS, diesel: lubePremRegular?.lubePrices?.DIESEL },
-                      { label: 'Semi-Synthetic',  gas: lubePremSemi?.lubePrices?.GAS,    diesel: lubePremSemi?.lubePrices?.DIESEL },
-                      { label: 'Fully-Synthetic', gas: lubePremFull?.lubePrices?.GAS,    diesel: lubePremFull?.lubePrices?.DIESEL },
-                    ].map(({ label, gas, diesel }, i) => (
-                      <tr key={label} className={i % 2 === 1 ? 'bg-gray-50' : 'bg-white'}>
-                        <td className="font-lovelo p-3 font-bold text-xs" style={{ color: '#383838' }}>{label}</td>
-                        <td className="font-lovelo p-3 text-center font-black text-sm" style={{ color: '#ee4923' }}>{fmt(gas)}</td>
-                        <td className="font-lovelo p-3 text-center font-black text-sm" style={{ color: '#ee4923' }}>{fmt(diesel)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="font-lovelo text-gray-400 text-[10px] mt-3 text-center" style={{ fontWeight: 300 }}>
-                ✦ Less 10% for Club Wash &amp; Go Members · Additional fee for OEM Filters
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ══ AUTO GROOMING ══ */}
-        <section className="rounded-3xl overflow-hidden shadow-lg border border-gray-200 bg-white">
-          <div className="flex items-center gap-3 px-8 py-5" style={{ backgroundColor: '#383838' }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(238,73,35,0.2)' }}>
-              <Car className="w-5 h-5" style={{ color: '#ee4923' }} />
-            </div>
-            <div>
-              <h2 className="font-lovelo text-2xl font-black text-white tracking-wide">AUTO GROOMING</h2>
-              <p className="font-lovelo text-gray-400 text-xs" style={{ fontWeight: 300 }}>Interior · Exterior · Full · Engine · Glass detailing</p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ backgroundColor: '#ee4923' }}>
-                  <th className="font-lovelo p-4 text-left text-white font-black text-xs tracking-widest uppercase">Service</th>
-                  {['S', 'M', 'L', 'XL'].map(s => (
-                    <th key={s} className="font-lovelo p-4 text-center text-white font-black text-sm w-24">{s}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {[
-                  { label: 'Interior Detailing',  svc: groomInterior, note: true  },
-                  { label: 'Exterior Detailing',  svc: groomExterior              },
-                  { label: 'Full Detailing',       svc: groomFull,    best: true  },
-                  { label: 'Engine Detailing',     svc: groomEngine               },
-                  { label: 'Glass Detailing',      svc: groomGlass                },
-                ].map(({ label, svc: s, note, best }, i) => (
-                  <tr
-                    key={label}
-                    className={`transition-colors hover:bg-orange-50 ${i % 2 === 1 ? 'bg-gray-50/60' : 'bg-white'}`}
-                  >
-                    <td className="p-4">
-                      <span className="font-lovelo font-bold text-xs" style={{ color: '#383838' }}>{label}</span>
-                      {note && <span className="font-lovelo text-gray-400 text-[10px] ml-1.5" style={{ fontWeight: 300 }}>— price starts at</span>}
-                      {best && (
-                        <span className="ml-2 font-lovelo text-[9px] font-black text-white px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ee4923' }}>
-                          BEST VALUE
-                        </span>
-                      )}
-                    </td>
-                    {['SMALL','MEDIUM','LARGE','EXTRA_LARGE'].map(size => (
-                      <td
-                        key={size}
-                        className={`p-4 text-center font-lovelo font-black text-sm ${best ? '' : 'text-gray-700'}`}
-                        style={best ? { color: '#ee4923' } : {}}
-                      >
-                        {fmt(s?.prices?.[size as keyof typeof s.prices])}
-                      </td>
-                    ))}
+          {/* Premium */}
+          <div className="p-8">
+            <div className="text-white text-center py-2 font-bold text-xl uppercase tracking-widest mb-6 rounded" style={{ backgroundColor: '#ee4923' }}>PREMIUM</div>
+            <p className="text-sm text-gray-500 text-center italic mb-6 px-4">
+              INCLUSIONS: Engine Oil, Oil Filter, Labor, Engine Flushing, FREE Standard Car Wash
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-900 text-white">
+                    <th className="p-3 text-left">TYPE</th>
+                    <th className="p-3 text-center w-1/3"><div>GAS</div><div className="text-[10px] font-normal opacity-75">4 LITERS</div></th>
+                    <th className="p-3 text-center w-1/3"><div>DIESEL</div><div className="text-[10px] font-normal opacity-75">7 LITERS</div></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* ══ CERAMIC COATING ══ */}
-        <section className="rounded-3xl overflow-hidden shadow-lg border border-gray-200 bg-white">
-          <div className="flex items-center gap-3 px-8 py-5" style={{ background: 'linear-gradient(135deg, #ee4923 0%, #F4921F 100%)' }}>
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <ShieldCheck className="text-white w-5 h-5" />
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  <tr>
+                    <td className="p-3 font-bold text-gray-700">REGULAR</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{fmt(lubePremRegular?.lubePrices?.GAS)}</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{fmt(lubePremRegular?.lubePrices?.DIESEL)}</td>
+                  </tr>
+                  <tr className="bg-gray-50">
+                    <td className="p-3 font-bold text-gray-700">SEMI-SYNTHETIC</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{fmt(lubePremSemi?.lubePrices?.GAS)}</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{fmt(lubePremSemi?.lubePrices?.DIESEL)}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-bold text-gray-700">FULLY-SYNTHETIC</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{fmt(lubePremFull?.lubePrices?.GAS)}</td>
+                    <td className="p-3 text-center font-bold text-gray-900">{fmt(lubePremFull?.lubePrices?.DIESEL)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div>
-              <h2 className="font-lovelo text-2xl font-black text-white tracking-wide">CERAMIC COATING</h2>
-              <p className="font-lovelo text-orange-100 text-xs" style={{ fontWeight: 300 }}>Long-term paint protection</p>
-            </div>
-          </div>
-
-          {/* Inclusions banner */}
-          <div className="px-6 py-3 border-b border-gray-100" style={{ backgroundColor: '#fafafa' }}>
-            <p className="font-lovelo text-gray-500 text-xs text-center" style={{ fontWeight: 300 }}>
-              <span className="font-black" style={{ color: '#383838' }}>Includes:</span> Standard Car Wash · Asphalt Removal · Exterior Detailing · Watermarks/Acid Rain Removal · Paint Correction
+            <p className="text-[10px] text-gray-400 text-center mt-4">
+              Note: Less 10% discount for Club Wash &amp; Go Members. Additional fee for OEM Oil Filters.
             </p>
           </div>
+        </div>
+      </section>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs md:text-sm">
-              <thead>
-                <tr style={{ backgroundColor: '#383838' }}>
-                  <th className="font-lovelo p-3 text-left text-white font-black tracking-wider">Protection</th>
-                  <th className="font-lovelo p-3 text-center text-white font-black tracking-wider border-l border-white/10" colSpan={4}>
-                    Vehicle
-                  </th>
-                  <th className="font-lovelo p-3 text-center text-white font-black tracking-wider border-l border-white/10" colSpan={4}>
-                    Motorcycle
-                  </th>
+      {/* AUTO GROOMING */}
+      <section className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div className="p-6 flex items-center justify-center gap-3" style={{ backgroundColor: '#383838' }}>
+          <Car className="text-orange-500 w-8 h-8" />
+          <h3 className="text-3xl font-black text-white italic tracking-wider uppercase">Auto Grooming</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm lg:text-base">
+            <thead>
+              <tr style={{ backgroundColor: '#ee4923' }} className="text-white">
+                <th className="p-4 text-left font-bold italic uppercase tracking-wider w-1/3">Services</th>
+                <th className="p-4 text-center font-bold w-1/6">S</th>
+                <th className="p-4 text-center font-bold w-1/6">M</th>
+                <th className="p-4 text-center font-bold w-1/6">L</th>
+                <th className="p-4 text-center font-bold w-1/6">XL</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 font-medium text-gray-700">
+              {[
+                { label: 'Interior Detailing', svc: groomInterior, note: true },
+                { label: 'Exterior Detailing', svc: groomExterior },
+                { label: 'Full Detailing', svc: groomFull, highlight: true },
+                { label: 'Engine Detailing', svc: groomEngine },
+                { label: 'Glass Detailing', svc: groomGlass },
+              ].map(({ label, svc: s, note, highlight }, i) => (
+                <tr key={label} className={`hover:bg-orange-50 transition-colors${i % 2 === 1 ? ' bg-gray-50' : ''}`}>
+                  <td className="p-4">{label}{note && <span className="text-xs text-gray-400 font-normal"> - Price starts at</span>}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(s?.prices?.SMALL)}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(s?.prices?.MEDIUM)}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(s?.prices?.LARGE)}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(s?.prices?.EXTRA_LARGE)}</td>
                 </tr>
-                <tr style={{ backgroundColor: '#f0f0f0' }}>
-                  <th className="p-3" />
-                  {['S','M','L','XL','S','M','L','XL'].map((s, i) => (
-                    <th key={i} className="font-lovelo p-3 text-center font-black text-xs" style={{ color: '#383838', borderLeft: i === 4 ? '1px solid #e0e0e0' : undefined }}>
-                      {s}
-                    </th>
-                  ))}
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* CERAMIC COATING */}
+      <section className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+        <div className="p-6 flex items-center justify-center gap-3" style={{ backgroundColor: '#ee4923' }}>
+          <ShieldCheck className="text-white w-8 h-8" />
+          <h3 className="text-3xl font-black text-white italic tracking-wider uppercase">Ceramic Coating</h3>
+        </div>
+        <div className="bg-gray-100 p-4 text-center text-xs md:text-sm text-gray-600 border-b border-gray-200">
+          <span className="font-bold">INCLUSIONS:</span> Standard Car Wash, Asphalt Removal, Exterior Detailing, Watermarks/Acid Rain Removal, Paint Correction
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm lg:text-base">
+            <thead>
+              <tr className="bg-gray-800 text-white text-xs md:text-sm">
+                <th className="p-3 text-left w-1/5">PROTECTION</th>
+                <th className="p-3 text-center border-l border-gray-700 bg-gray-900" colSpan={4}>VEHICLE</th>
+                <th className="p-3 text-center border-l border-gray-700 bg-gray-900" colSpan={4}>MOTORCYCLE</th>
+              </tr>
+              <tr className="bg-gray-200 text-gray-800 text-xs font-bold">
+                <th className="p-3"></th>
+                <th className="p-3 text-center">S</th><th className="p-3 text-center">M</th><th className="p-3 text-center">L</th><th className="p-3 text-center border-r border-gray-300">XL</th>
+                <th className="p-3 text-center">S</th><th className="p-3 text-center">M</th><th className="p-3 text-center">L</th><th className="p-3 text-center">XL</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 font-medium text-gray-700">
+              {[
+                { label: '1 YEAR', v: c1V, m: c1M },
+                { label: '3 YEARS', v: c3V, m: c3M },
+                { label: '5 YEARS', v: c5V, m: c5M, highlight: true },
+              ].map(({ label, v, m, highlight }) => (
+                <tr key={label} className="hover:bg-orange-50 transition-colors">
+                  <td className="p-4 font-bold bg-gray-50">{label}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(v?.prices?.SMALL)}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(v?.prices?.MEDIUM)}</td>
+                  <td className={`p-4 text-center${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(v?.prices?.LARGE)}</td>
+                  <td className={`p-4 text-center border-r border-gray-100${highlight ? ' font-bold text-orange-600' : ''}`}>{fmt(v?.prices?.EXTRA_LARGE)}</td>
+                  <td className="p-4 text-center">{fmt(m?.prices?.SMALL)}</td>
+                  <td className="p-4 text-center">{fmt(m?.prices?.MEDIUM)}</td>
+                  <td className="p-4 text-center">{fmt(m?.prices?.LARGE)}</td>
+                  <td className="p-4 text-center">{fmt(m?.prices?.EXTRA_LARGE)}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {[
-                  { label: '1 YEAR',  v: c1V, m: c1M },
-                  { label: '3 YEARS', v: c3V, m: c3M },
-                  { label: '5 YEARS', v: c5V, m: c5M, best: true },
-                ].map(({ label, v, m, best }) => (
-                  <tr key={label} className="hover:bg-orange-50 transition-colors">
-                    <td className="p-4" style={{ backgroundColor: best ? '#fff5f0' : '#fafafa' }}>
-                      <div className="flex items-center gap-2">
-                        {best && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#ee4923' }} />}
-                        <span className="font-lovelo font-black text-xs" style={{ color: best ? '#ee4923' : '#383838' }}>{label}</span>
-                      </div>
-                    </td>
-                    {[v?.prices?.SMALL, v?.prices?.MEDIUM, v?.prices?.LARGE, v?.prices?.EXTRA_LARGE,
-                      m?.prices?.SMALL, m?.prices?.MEDIUM, m?.prices?.LARGE, m?.prices?.EXTRA_LARGE].map((price, i) => (
-                      <td
-                        key={i}
-                        className="font-lovelo p-4 text-center font-black text-sm"
-                        style={{
-                          color: best ? '#ee4923' : '#383838',
-                          borderLeft: i === 4 ? '1px solid #e5e7eb' : undefined,
-                        }}
-                      >
-                        {fmt(price)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="text-white text-[10px] md:text-xs p-3 text-center" style={{ backgroundColor: '#383838' }}>
+          Note: Less 10% discount applies for Club Wash &amp; Go Members only.
+        </div>
+      </section>
 
-          <div className="px-6 py-3 text-center" style={{ backgroundColor: '#383838' }}>
-            <p className="font-lovelo text-gray-400 text-[10px]" style={{ fontWeight: 300 }}>
-              ✦ Less 10% discount for Club Wash &amp; Go Members only
-            </p>
-          </div>
-        </section>
-
-        {/* ══ CTA ══ */}
-        {onBookNow && (
-          <section
-            className="relative overflow-hidden rounded-3xl p-12 text-center shadow-xl"
-            style={{ background: 'linear-gradient(135deg, #ee4923 0%, #F4921F 100%)' }}
+      {/* CTA */}
+      {onBookNow && (
+        <section className="rounded-2xl p-10 text-center shadow-lg" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}>
+          <h3 className="text-2xl md:text-3xl font-black text-white mb-3">Ready to Book?</h3>
+          <p className="text-white/90 mb-6 max-w-xl mx-auto">
+            Give your car the premium care it deserves. Book your service now.
+          </p>
+          <button
+            onClick={onBookNow}
+            className="group inline-flex items-center gap-2 bg-white font-bold py-3 px-10 rounded-xl hover:bg-gray-50 transition-all shadow-lg hover:-translate-y-0.5 text-lg"
+            style={{ color: '#ee4923' }}
           >
-            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/8" />
-            <div className="absolute -bottom-16 -left-10 w-64 h-64 rounded-full bg-black/10" />
-            <div className="relative z-10">
-              <h3 className="font-lovelo text-3xl font-black text-white mb-2">Ready to Book?</h3>
-              <p className="font-lovelo text-orange-100 text-sm mb-8 max-w-md mx-auto" style={{ fontWeight: 300 }}>
-                Give your car the premium care it deserves. Book your service now.
-              </p>
-              <button
-                onClick={onBookNow}
-                className="group inline-flex items-center gap-2.5 bg-white font-lovelo font-black text-base py-4 px-10 rounded-2xl hover:bg-gray-900 hover:text-white transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                style={{ color: '#ee4923' }}
-              >
-                Book a Service Now
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" />
-              </button>
-            </div>
-          </section>
-        )}
-      </div>
+            Book a Service Now
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </section>
+      )}
     </div>
   );
 }
