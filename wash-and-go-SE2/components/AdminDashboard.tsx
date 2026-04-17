@@ -616,7 +616,7 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
             </div>
 
             {/* Sidebar + Detail layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-4 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-4 items-start">
 
               {/* ── Service Sidebar ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
