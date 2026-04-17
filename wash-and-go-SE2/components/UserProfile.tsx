@@ -3,6 +3,7 @@ import { AppUser } from '../App';
 import { Booking } from '../types';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { isActiveBooking, isPastBooking } from '../lib/bookingStatus';
 
 interface UserProfileProps {
   user: AppUser;
@@ -11,13 +12,9 @@ interface UserProfileProps {
   onRefresh?: () => void;
 }
 
-const STATUS_PRESENT = new Set(['PENDING', 'CONFIRMED', 'IN_PROGRESS']);
-const STATUS_PAST    = new Set(['COMPLETED', 'CANCELLED']);
-const normalizeStatus = (status: string) => status.toUpperCase().replace(/[\s-]/g, '_');
-
 export default function UserProfile({ user, userBookings, loading, onRefresh }: UserProfileProps) {
-  const presentBookings = userBookings.filter(b => STATUS_PRESENT.has(normalizeStatus(b.status as string)));
-  const pastBookings    = userBookings.filter(b => STATUS_PAST.has(normalizeStatus(b.status as string)));
+  const presentBookings = userBookings.filter(isActiveBooking);
+  const pastBookings    = userBookings.filter(isPastBooking);
   const initial         = user.name?.charAt(0)?.toUpperCase() ?? '?';
 
   return (
