@@ -6,11 +6,12 @@ import { Logger } from '@nestjs/common';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
-  const configuredCORSOrigins = process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '';
+  const stripQuotes = (s: string) => s.replace(/^["']|["']$/g, '');
+  const configuredCORSOrigins = stripQuotes(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '');
   const configuredOrigins = [
     ...configuredCORSOrigins
       .split(',')
-      .map((origin) => origin.trim())
+      .map((origin) => stripQuotes(origin.trim()))
       .filter(Boolean),
     'http://localhost:3000',
     'https://wash-and-go-front-back-*.vercel.app',
@@ -24,7 +25,8 @@ async function bootstrap() {
     .filter((origin) => origin.includes('*'))
     .map((origin) => new RegExp(`^${escapeRegex(origin).replace(/\\\*/g, '.*')}$`));
 
-  const allowAllVercelOrigins = process.env.CORS_ALLOW_VERCEL?.toLowerCase() === 'true';
+  const rawAllowVercel = stripQuotes(process.env.CORS_ALLOW_VERCEL ?? '');
+  const allowAllVercelOrigins = rawAllowVercel.toLowerCase() === 'true';
 
   const isAllowedOrigin = (origin: string): boolean => {
     if (exactOrigins.includes(origin)) return true;
