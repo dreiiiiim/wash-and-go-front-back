@@ -11,12 +11,13 @@ interface UserProfileProps {
   onRefresh?: () => void;
 }
 
-const STATUS_PRESENT = new Set(['Pending', 'Confirmed', 'In Progress', 'PENDING', 'CONFIRMED', 'IN_PROGRESS']);
-const STATUS_PAST    = new Set(['Completed', 'Cancelled', 'COMPLETED', 'CANCELLED']);
+const STATUS_PRESENT = new Set(['PENDING', 'CONFIRMED', 'IN_PROGRESS']);
+const STATUS_PAST    = new Set(['COMPLETED', 'CANCELLED']);
+const normalizeStatus = (status: string) => status.toUpperCase().replace(/[\s-]/g, '_');
 
 export default function UserProfile({ user, userBookings, loading, onRefresh }: UserProfileProps) {
-  const presentBookings = userBookings.filter(b => STATUS_PRESENT.has(b.status as string));
-  const pastBookings    = userBookings.filter(b => STATUS_PAST.has(b.status as string));
+  const presentBookings = userBookings.filter(b => STATUS_PRESENT.has(normalizeStatus(b.status as string)));
+  const pastBookings    = userBookings.filter(b => STATUS_PAST.has(normalizeStatus(b.status as string)));
   const initial         = user.name?.charAt(0)?.toUpperCase() ?? '?';
 
   return (

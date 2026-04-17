@@ -15,8 +15,9 @@ interface CheckStatusProps {
 
 type Tab = 'present' | 'past';
 
-const STATUS_PRESENT = new Set(['Pending', 'Confirmed', 'In Progress', 'PENDING', 'CONFIRMED', 'IN_PROGRESS']);
-const STATUS_PAST    = new Set(['Completed', 'Cancelled', 'COMPLETED', 'CANCELLED']);
+const STATUS_PRESENT = new Set(['PENDING', 'CONFIRMED', 'IN_PROGRESS']);
+const STATUS_PAST    = new Set(['COMPLETED', 'CANCELLED']);
+const normalizeStatus = (status: string) => status.toUpperCase().replace(/[\s-]/g, '_');
 
 function accentColor(status: string): string {
   const s = status.toUpperCase().replace(' ', '_');
@@ -131,8 +132,8 @@ export default function CheckStatus({ user, userBookings = [], loading, onRefres
   const [searching, setSearching]     = useState(false);
   const [activeTab, setActiveTab]     = useState<Tab>('present');
 
-  const presentBookings = userBookings.filter(b => STATUS_PRESENT.has(b.status as string));
-  const pastBookings    = userBookings.filter(b => STATUS_PAST.has(b.status as string));
+  const presentBookings = userBookings.filter(b => STATUS_PRESENT.has(normalizeStatus(b.status as string)));
+  const pastBookings    = userBookings.filter(b => STATUS_PAST.has(normalizeStatus(b.status as string)));
   const displayed       = activeTab === 'present' ? presentBookings : pastBookings;
 
   const handleSearch = async (e: React.FormEvent) => {

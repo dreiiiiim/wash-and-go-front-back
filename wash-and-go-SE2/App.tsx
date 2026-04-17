@@ -117,6 +117,7 @@ export default function App() {
 
   const handleNewBooking = (booking: Booking) => {
     setBookings(prev => [booking, ...prev]);
+    setUserBookings(prev => [booking, ...prev.filter(b => b.id !== booking.id)]);
     alert('Booking Submitted Successfully! Please wait for confirmation.');
     setView('HOME');
   };
@@ -153,10 +154,23 @@ export default function App() {
     }
   };
 
-  const handleAuthSuccess = (loggedInUser: AppUser) => {
+  const handleAuthSuccess = async (loggedInUser: AppUser) => {
     setUser(loggedInUser);
     setView(loggedInUser.isStaff ? 'ADMIN' : 'PROFILE');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    setToken(session.access_token);
+    if (loggedInUser.isStaff) {
+      try {
+        const data = await api.getAllBookings(session.access_token);
+        setBookings(data);
+      } catch { /* ignore — will show empty */ }
+    } else {
+      loadUserBookings(session.access_token);
+    }
   };
 
   const handleLogout = async () => {
