@@ -1,248 +1,422 @@
-import React from 'react';
-import { Star, CheckCircle2, ChevronRight, Sparkles, Droplets, Car, Shield, PaintBucket, SprayCan, ArrowRight } from 'lucide-react';
+import { motion, useInView } from "motion/react";
+import { useRef } from "react";
+import {
+  Car,
+  Droplets,
+  Award,
+  DollarSign,
+  Zap,
+  Wrench,
+  Sparkles,
+  Shield,
+  ShieldCheck,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
+import type { ViewType } from "../App";
 
-// Import logo paths
-import wurthLogo from '../assets/wurth-logo.png';
-import hpureLogo from '../assets/hpure_logo.png';
-import iglLogo from '../assets/unnamed.png';
-import ppfLogo from '../assets/ppf.png';
+import hpureLogo from "../assets/hpure_logo.png";
+import ppfLogo    from "../assets/ppf.png";
+import iglLogo    from "../assets/unnamed.png";
+import wurthLogo  from "../assets/wurth-logo.png";
 
-interface HomePageProps {
-  onViewChange: (view: 'HOME' | 'CLIENT' | 'ADMIN' | 'SERVICES' | 'STATUS') => void;
-}
+/* ─── Injected styles (carousel keyframe only — Lovelo loaded globally) ─── */
+const FontStyle = () => (
+  <style>{`
+    @keyframes ticker-ltr {
+      0%   { transform: translateX(-50%); }
+      100% { transform: translateX(0%);   }
+    }
+    .animate-ticker-ltr {
+      display: flex;
+      width: max-content;
+      animation: ticker-ltr 28s linear infinite;
+    }
+    .animate-ticker-ltr:hover { animation-play-state: paused; }
+  `}</style>
+);
 
-const services = [
-  { icon: <Car className="w-8 h-8" />, title: 'Car Wash', desc: 'Quick and efficient exterior washing to remove dirt, dust, and grime.' },
-  { icon: <Sparkles className="w-8 h-8" />, title: 'Auto Detailing', desc: 'Deep interior and exterior cleaning that restores your car\'s original shine.' },
-  { icon: <Droplets className="w-8 h-8" />, title: 'Oil Change', desc: 'Professional oil replacement to keep your engine running smoothly.' },
-  { icon: <Shield className="w-8 h-8" />, title: 'Rust Proofing', desc: 'Protect your vehicle from corrosion and extend its lifespan.' },
-  { icon: <PaintBucket className="w-8 h-8" />, title: 'Ceramic Coating', desc: 'Advanced coating that protects your car\'s paint and provides long-lasting shine.' },
-  { icon: <SprayCan className="w-8 h-8" />, title: 'Interior Cleaning', desc: 'Complete vacuuming, dashboard cleaning, and upholstery care.' },
+/* ─── Hero ─── */
+const Hero = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => (
+  <section className="relative h-screen flex items-center justify-center overflow-hidden bg-[#383838]">
+    <div className="absolute inset-0 z-0">
+      <img
+        src="https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=2000"
+        alt="Clean Car"
+        className="w-full h-full object-cover opacity-55"
+        referrerPolicy="no-referrer"
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#383838]/80 via-black/20 to-[#383838]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
+    </div>
+
+    <div className="relative z-10 text-center px-4 max-w-4xl">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="inline-flex items-center gap-2 bg-white/8 backdrop-blur-sm border border-white/12 rounded-full px-4 py-1.5 mb-8"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-[#ee4923] animate-pulse" />
+        <span className="text-gray-300 text-xs font-lovelo font-medium tracking-wider uppercase">
+          Premium Auto Salon — Baliuag
+        </span>
+      </motion.div>
+
+      <motion.h1
+        initial={{ opacity: 0, y: 32 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="font-lovelo text-[clamp(2.8rem,8vw,5.5rem)] font-extrabold text-white mb-6 leading-[1.05] tracking-tight"
+      >
+        Keep Your Car Clean
+        <br />
+        <span className="text-[#ee4923]">Always</span>
+      </motion.h1>
+
+      <motion.p
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
+        className="font-lovelo text-gray-300 text-base md:text-lg mb-10 max-w-xl mx-auto leading-relaxed"
+      >
+        Wash &amp; Go is a premium car care brand that restores and maintains
+        automotive vehicles so they look, feel, and smell brand new.
+      </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.45, ease: "backOut" }}
+        className="flex flex-col sm:flex-row items-center justify-center gap-4"
+      >
+        <button
+          onClick={() => onViewChange('CLIENT')}
+          className="group bg-[#ee4923] hover:bg-[#d43d1a] text-white px-10 py-4 rounded-full font-lovelo font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-orange-900/40 flex items-center gap-2"
+        >
+          Book Now
+          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+        </button>
+        <button
+          onClick={() => onViewChange('SERVICES')}
+          className="font-lovelo text-gray-300 hover:text-white text-sm font-medium flex items-center gap-2 group transition-colors duration-200"
+        >
+          View Services
+          <span className="w-8 h-px bg-gray-500 group-hover:bg-white group-hover:w-12 transition-all duration-300" />
+        </button>
+      </motion.div>
+    </div>
+
+    {/* Scroll indicator — minimalist bouncing arrow */}
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1">
+      <motion.div
+        animate={{ y: [0, 6, 0] }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <ChevronDown className="w-6 h-6 text-white/50" strokeWidth={1.5} />
+      </motion.div>
+    </div>
+  </section>
+);
+
+/* ─── Brand Carousel (Left → Right) ─── */
+const partnerLogos = [
+  { src: hpureLogo, alt: "H-Pure Lubricants" },
+  { src: ppfLogo,   alt: "Prime Protection Film" },
+  { src: iglLogo,   alt: "IGL Coatings" },
+  { src: wurthLogo, alt: "Würth" },
 ];
 
-const whyChooseUs = [
-  'Professional and experienced staff',
-  'High-quality cleaning products',
-  'Affordable service packages',
-  'Fast and efficient service',
-  'Customer satisfaction guaranteed',
+const BrandLogos = () => (
+  <div className="bg-white py-12 border-y border-gray-100 overflow-hidden">
+    <p className="text-center font-lovelo text-[10px] font-semibold tracking-[0.35em] text-gray-400 uppercase mb-8">
+      Our Trusted Partners
+    </p>
+    <div className="overflow-hidden">
+      <div className="animate-ticker-ltr">
+        {[...partnerLogos, ...partnerLogos, ...partnerLogos, ...partnerLogos].map((logo, i) => (
+          <div key={i} className="flex items-center justify-center mx-12 md:mx-16 shrink-0 select-none">
+            <img
+              src={logo.src}
+              alt={logo.alt}
+              className="h-14 md:h-16 w-auto object-contain opacity-85 hover:opacity-100 hover:scale-105 transition-all duration-300"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+/* ─── Services ─── */
+const servicesList = [
+  { icon: <Droplets />, title: "Car Wash",          desc: "Full exterior wash using premium water-drop-over technology." },
+  { icon: <Wrench />,   title: "Auto Detailing",    desc: "Highly trained detailers restore your car inside and out." },
+  { icon: <Zap />,      title: "Oil Change",        desc: "Fast, clean oil change using top-tier lubricants and filters." },
+  { icon: <Shield />,   title: "Rust Proofing",     desc: "Chassis shield treatment that guards against rust damage." },
+  { icon: <Sparkles />, title: "Ceramic Coating",   desc: "Protective ceramic layer for a long-lasting showroom finish." },
+  { icon: <Car />,      title: "Interior Cleaning", desc: "Deep-clean interior refresh — fresh cabin, every time." },
 ];
 
-const steps = [
-  { num: '1', title: 'Bring Your Car', desc: 'Bring your car to our auto salon' },
-  { num: '2', title: 'Choose a Service', desc: 'Choose your preferred service' },
-  { num: '3', title: 'We Clean & Detail', desc: 'Our experts clean and detail your vehicle' },
-  { num: '4', title: 'Drive Away Happy', desc: 'Drive away with a fresh, shiny car' },
-];
+const Services = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
 
-const partnerLogos = [wurthLogo, hpureLogo, iglLogo, ppfLogo];
-
-export default function HomePage({ onViewChange }: HomePageProps) {
   return (
-    <div className="w-full">
+    <section id="services" className="py-24 bg-white" ref={ref}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <span className="font-lovelo text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-3 block">
+            What We Offer
+          </span>
+          <h2 className="font-lovelo text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
+            Our Services
+          </h2>
+        </motion.div>
 
-      {/* ==================== HERO SECTION ==================== */}
-      <section className="relative overflow-hidden py-24 md:py-36 px-4" style={{ background: 'linear-gradient(135deg, #000000 0%, #383838 40%, #ee4923 100%)' }}>
-        {/* Decorative blurred circles */}
-        <div className="absolute top-10 left-10 w-72 h-72 rounded-full opacity-15 blur-3xl" style={{ backgroundColor: '#ee4923' }}></div>
-        <div className="absolute bottom-10 right-10 w-96 h-96 rounded-full opacity-10 blur-3xl" style={{ backgroundColor: '#F4921F' }}></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {servicesList.map((svc, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 28 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.55, delay: idx * 0.08, ease: "easeOut" }}
+              whileHover={{ y: -6, transition: { duration: 0.25, ease: "easeOut" } }}
+              onClick={() => onViewChange('SERVICES')}
+              className="group p-8 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-orange-100 transition-shadow duration-300 cursor-pointer"
+            >
+              <div className="w-12 h-12 bg-orange-50 text-[#ee4923] rounded-xl flex items-center justify-center mb-5 group-hover:bg-[#ee4923] group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-orange-200">
+                {svc.icon}
+              </div>
+              <h3 className="font-lovelo text-lg font-bold text-gray-900 mb-2">{svc.title}</h3>
+              <p className="font-lovelo text-gray-500 text-sm leading-relaxed">{svc.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <p className="inline-block font-semibold text-sm tracking-widest uppercase mb-4 rounded-full px-4 py-1.5 backdrop-blur-sm" style={{ color: '#F4921F', border: '1px solid rgba(238,73,35,0.3)', backgroundColor: 'rgba(238,73,35,0.1)' }}>
-            Premium Car Care
-          </p>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
-            Premium Car Care<br />
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}>Starts Here</span>
-          </h1>
-          <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            At Wash & Go Auto Salon, we provide professional car cleaning, detailing, and maintenance services designed to keep your vehicle looking brand new. From quick washes to full detailing and protective treatments, we deliver quality care for every car.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+/* ─── Why Choose Us ─── */
+const features = [
+  { icon: <Award className="w-5 h-5" />,      title: "Professional Staff",    desc: "Highly trained and experienced detailers who take pride in every vehicle." },
+  { icon: <Droplets className="w-5 h-5" />,   title: "Premium Products",      desc: "We only use top-tier cleaning chemicals safe for all paint finishes." },
+  { icon: <DollarSign className="w-5 h-5" />, title: "Affordable Packages",   desc: "Quality service that fits your budget — no hidden fees." },
+  { icon: <Zap className="w-5 h-5" />,        title: "Fast & Efficient",      desc: "Get back on the road looking fresh, faster than ever." },
+];
+
+const WhyChooseUs = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-80px" });
+
+  return (
+    <section className="relative py-24 bg-gray-50 overflow-hidden" ref={ref}>
+      <div className="absolute top-0 right-0 w-[480px] h-[480px] bg-orange-100/60 rounded-full blur-[120px] -translate-y-1/3 translate-x-1/3 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[360px] h-[360px] bg-orange-50/80 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-16 items-center">
+          <motion.div
+            className="lg:w-1/2"
+            initial={{ opacity: 0, x: -28 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+          >
+            <span className="font-lovelo text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-4 block">
+              Our Promise
+            </span>
+            <h2 className="font-lovelo text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight tracking-tight">
+              Why Choose
+              <br />
+              Wash &amp; Go?
+            </h2>
+            <p className="font-lovelo text-gray-500 text-base mb-10 leading-relaxed max-w-md">
+              We don't just wash cars — we restore them. Our commitment to excellence
+              guarantees you'll drive away with a vehicle that looks, feels, and smells
+              brand new.
+            </p>
             <button
               onClick={() => onViewChange('CLIENT')}
-              className="group text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#ee4923', boxShadow: '0 10px 25px rgba(238,73,35,0.3)' }}
+              className="group bg-[#ee4923] hover:bg-[#d43d1a] text-white px-8 py-4 rounded-xl font-lovelo font-bold text-sm transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-orange-200 flex items-center gap-2"
             >
-              Book a Service
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Book Your Slot
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
             </button>
-            <button
-              onClick={() => onViewChange('SERVICES')}
-              className="group bg-white/10 hover:bg-white/20 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:-translate-y-0.5 flex items-center justify-center gap-2"
-            >
-              View Our Services
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        </div>
+          </motion.div>
 
-        {/* Bottom gradient fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-24" style={{ background: 'linear-gradient(to top, #f5f5f5, transparent)' }}></div>
-      </section>
-
-      {/* ==================== PARTNER LOGOS ==================== */}
-      <section className="py-10 border-b border-gray-200" style={{ backgroundColor: '#f5f5f5' }}>
-        <div className="max-w-6xl mx-auto px-4 mb-4">
-          <p className="text-center text-sm font-semibold uppercase tracking-widest" style={{ color: '#383838' }}>Trusted by leading brands</p>
-        </div>
-        <div className="relative overflow-hidden w-full"
-          style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}
-        >
-          <div
-            className="flex items-center w-max"
-            style={{ animation: 'scroll-logos 20s linear infinite' }}
-          >
-            {[...Array(6)].map((_, setIdx) =>
-              partnerLogos.map((logo, i) => (
-                <img
-                  key={`${setIdx}-${i}`}
-                  src={logo}
-                  alt="Partner logo"
-                  className="h-16 md:h-20 mx-8 md:mx-12 object-contain"
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== ABOUT US ==================== */}
-      <section className="py-20 md:py-28 px-4" style={{ background: 'linear-gradient(180deg, #f5f5f5 0%, #ffffff 50%, #f5f5f5 100%)' }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="font-semibold text-sm uppercase tracking-widest mb-3" style={{ color: '#ee4923' }}>Who We Are</p>
-          <h2 className="text-3xl md:text-4xl font-black mb-4" style={{ color: '#383838' }}>About Wash & Go Auto Salon</h2>
-          <div className="w-16 h-1 rounded-full mx-auto mb-8" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}></div>
-          <p className="text-gray-600 text-lg leading-relaxed mb-6">
-            Wash & Go Auto Salon is your trusted destination for professional car care services. Our goal is to provide high-quality cleaning, detailing, and maintenance solutions that keep your vehicle looking its best.
-          </p>
-          <p className="text-gray-600 text-lg leading-relaxed">
-            With a team of experienced professionals and modern equipment, we ensure every vehicle receives detailed attention and premium treatment. Our services are designed to restore shine, protect surfaces, and maintain your car's value.
-          </p>
-        </div>
-      </section>
-
-      {/* ==================== OUR SERVICES ==================== */}
-      <section className="py-20 md:py-28 px-4" style={{ backgroundColor: '#ffffff' }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="font-semibold text-sm uppercase tracking-widest mb-3" style={{ color: '#ee4923' }}>What We Offer</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4" style={{ color: '#383838' }}>Our Services</h2>
-            <div className="w-16 h-1 rounded-full mx-auto" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((svc, idx) => (
-              <div
+          <div className="lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {features.map((f, idx) => (
+              <motion.div
                 key={idx}
-                className="group rounded-2xl p-8 border shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 cursor-default"
-                style={{ backgroundColor: '#ffffff', borderColor: '#e5e5e5' }}
+                initial={{ opacity: 0, y: 28 }}
+                animate={isInView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.55, delay: 0.18 + idx * 0.1, ease: "easeOut" }}
+                whileHover={{ y: -5, transition: { duration: 0.22, ease: "easeOut" } }}
+                className="group relative p-6 rounded-2xl cursor-default
+                  bg-white/70 backdrop-blur-md border border-white/80
+                  shadow-[0_4px_24px_rgba(0,0,0,0.06)]
+                  hover:shadow-[0_8px_40px_rgba(238,73,35,0.12)]
+                  hover:border-orange-100 transition-all duration-300"
               >
-                <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
-                  style={{
-                    backgroundColor: 'rgba(238,73,35,0.08)',
-                    color: '#ee4923',
-                  }}
-                >
-                  <div className="group-hover:text-white transition-colors duration-300" style={{ color: 'inherit' }}>
-                    {svc.icon}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-50/0 group-hover:from-orange-50/60 to-transparent transition-all duration-300 pointer-events-none" />
+                <div className="relative">
+                  <div className="w-10 h-10 bg-orange-50 text-[#ee4923] rounded-xl flex items-center justify-center mb-4
+                    group-hover:bg-[#ee4923] group-hover:text-white group-hover:scale-110
+                    transition-all duration-300 shadow-sm group-hover:shadow-orange-200">
+                    {f.icon}
                   </div>
+                  <h4 className="font-lovelo font-bold text-gray-900 text-sm mb-1.5">{f.title}</h4>
+                  <p className="font-lovelo text-gray-500 text-xs leading-relaxed">{f.desc}</p>
                 </div>
-                <h3 className="text-xl font-bold mb-3" style={{ color: '#383838' }}>{svc.title}</h3>
-                <p className="text-gray-500 leading-relaxed text-sm">{svc.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
-          <div className="text-center mt-12">
-            <button
-              onClick={() => onViewChange('SERVICES')}
-              className="group inline-flex items-center gap-2 font-bold transition-colors text-lg"
-              style={{ color: '#ee4923' }}
+/* ─── How It Works — Sequential 1 → 4 ─── */
+const steps = [
+  { number: "01", title: "Bring Your Car",  desc: "Visit our auto salon in Baliuag" },
+  { number: "02", title: "Choose Service",  desc: "Select your preferred package"   },
+  { number: "03", title: "We Detail",       desc: "Our experts get to work"         },
+  { number: "04", title: "Drive Happy",     desc: "Leave with a showroom shine"     },
+];
+
+const HowItWorks = () => {
+  const ref = useRef(null);
+  const lineRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <section id="how-it-works" className="py-24 bg-[#383838] text-white" ref={ref}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <motion.span
+          initial={{ opacity: 0, y: 10 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+          className="font-lovelo text-[#ee4923] font-semibold text-xs tracking-[0.3em] uppercase mb-4 block"
+        >
+          Simple Process
+        </motion.span>
+        <motion.h2
+          initial={{ opacity: 0, y: 18 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="font-lovelo text-4xl md:text-5xl font-extrabold mb-20 tracking-tight"
+        >
+          How It Works
+        </motion.h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 relative">
+          {/* Track line */}
+          <div className="hidden md:block absolute top-[38px] left-[14%] right-[14%] h-px bg-white/10 z-0">
+            <motion.div
+              className="h-full bg-[#ee4923]"
+              initial={{ scaleX: 0 }}
+              animate={isInView ? { scaleX: 1 } : { scaleX: 0 }}
+              transition={{ duration: 1.5, delay: 0.6, ease: [0.4, 0, 0.2, 1] }}
+              style={{ transformOrigin: "left" }}
+              ref={lineRef}
+            />
+          </div>
+
+          {steps.map((step, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 40 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.6, delay: 0.35 + idx * 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="relative z-10 group flex flex-col items-center"
             >
-              View Full Pricing & Rates
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={isInView ? { scale: 1, opacity: 1 } : {}}
+                transition={{ duration: 0.5, delay: 0.4 + idx * 0.22, ease: "backOut" }}
+                className="w-[76px] h-[76px] bg-[#ee4923] rounded-2xl flex items-center justify-center mx-auto mb-7 shadow-xl shadow-orange-900/35 group-hover:scale-110 group-hover:shadow-orange-500/50 transition-all duration-300"
+              >
+                <span className="font-lovelo text-2xl font-extrabold text-white">{step.number}</span>
+              </motion.div>
+              <h3 className="font-lovelo text-base font-bold mb-2 group-hover:text-[#ee4923] transition-colors duration-200">
+                {step.title}
+              </h3>
+              <p className="font-lovelo text-gray-400 text-sm leading-relaxed max-w-[150px] mx-auto">
+                {step.desc}
+              </p>
+              {idx < steps.length - 1 && (
+                <div className="md:hidden mt-6 w-px h-8 bg-white/10 mx-auto" />
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ─── CTA Banner ─── */
+const CTA = ({ onViewChange }: { onViewChange: (v: ViewType) => void }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <section className="py-20 bg-white" ref={ref}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 28, scale: 0.97 }}
+          animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="relative rounded-[2rem] px-8 py-16 text-center text-white overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #ee4923 0%, #F4921F 100%)' }}
+        >
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/8" />
+          <div className="absolute -bottom-20 -left-12 w-80 h-80 rounded-full bg-black/10" />
+          <div className="relative z-10">
+            <h2 className="font-lovelo text-3xl md:text-[2.75rem] font-extrabold mb-3 tracking-tight leading-tight">
+              Give Your Car the Care It Deserves
+            </h2>
+            <p className="font-lovelo text-orange-100 text-base mb-10 max-w-md mx-auto">
+              Book your slot today and drive away with a showroom-fresh finish.
+            </p>
+            <button
+              onClick={() => onViewChange('CLIENT')}
+              className="group bg-white text-[#ee4923] hover:bg-[#383838] hover:text-white px-12 py-4 rounded-full font-lovelo font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl inline-flex items-center gap-2"
+            >
+              Book Now
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
             </button>
           </div>
-        </div>
-      </section>
+        </motion.div>
+      </div>
+    </section>
+  );
+};
 
-      {/* ==================== WHY CHOOSE US ==================== */}
-      <section className="py-20 md:py-28 px-4" style={{ backgroundColor: '#f5f5f5' }}>
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="font-semibold text-sm uppercase tracking-widest mb-3" style={{ color: '#ee4923' }}>Our Promise</p>
-            <h2 className="text-3xl md:text-4xl font-black mb-4" style={{ color: '#383838' }}>Why Choose Wash & Go Auto Salon?</h2>
-            <div className="w-16 h-1 rounded-full mx-auto" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}></div>
-          </div>
+/* ─── Page ─── */
+interface HomePageProps {
+  onViewChange: (view: ViewType) => void;
+}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 max-w-2xl mx-auto">
-            {whyChooseUs.map((item, idx) => (
-              <div key={idx} className="flex items-start gap-4 group">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300" style={{ backgroundColor: 'rgba(238,73,35,0.1)' }}>
-                  <CheckCircle2 className="w-5 h-5 transition-colors duration-300" style={{ color: '#ee4923' }} />
-                </div>
-                <p className="font-medium pt-1" style={{ color: '#383838' }}>{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== HOW IT WORKS ==================== */}
-      <section className="py-20 md:py-28 px-4" style={{ background: 'linear-gradient(135deg, #000000, #383838)' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="font-semibold text-sm uppercase tracking-widest mb-3" style={{ color: '#F4921F' }}>Simple Process</p>
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">How It Works</h2>
-            <div className="w-16 h-1 rounded-full mx-auto" style={{ backgroundImage: 'linear-gradient(to right, #ee4923, #F4921F)' }}></div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step, idx) => (
-              <div key={idx} className="text-center relative">
-                {idx < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-[60%] w-[80%] h-0.5" style={{ backgroundImage: 'linear-gradient(to right, rgba(238,73,35,0.5), transparent)' }}></div>
-                )}
-                <div
-                  className="w-16 h-16 text-white rounded-2xl flex items-center justify-center text-2xl font-black mx-auto mb-5 shadow-lg hover:scale-110 transition-transform duration-300 rotate-3 hover:rotate-0"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #ee4923, #F4921F)', boxShadow: '0 10px 25px rgba(238,73,35,0.3)' }}
-                >
-                  {step.num}
-                </div>
-                <h3 className="text-white font-bold text-lg mb-2">{step.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== CALL TO ACTION ==================== */}
-      <section className="relative overflow-hidden py-20 md:py-28 px-4" style={{ background: 'linear-gradient(135deg, #ee4923, #F4921F)' }}>
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full opacity-5 -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full opacity-5 translate-y-1/2 -translate-x-1/2"></div>
-
-        <div className="relative z-10 max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight">
-            Give Your Car the Care<br />It Deserves
-          </h2>
-          <p className="text-white/90 text-lg md:text-xl mb-10 leading-relaxed max-w-xl mx-auto">
-            Visit Wash & Go Auto Salon today and experience premium car care services designed to keep your vehicle clean, protected, and shining.
-          </p>
-          <button
-            onClick={() => onViewChange('CLIENT')}
-            className="group bg-white font-bold py-4 px-10 rounded-xl hover:bg-gray-50 transition-all duration-300 shadow-xl shadow-black/10 hover:-translate-y-1 hover:shadow-2xl text-lg flex items-center gap-2 mx-auto"
-            style={{ color: '#ee4923' }}
-          >
-            Book Now
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </div>
-      </section>
-
-    </div>
+export default function Homepage({ onViewChange }: HomePageProps) {
+  return (
+    <>
+      <FontStyle />
+      <div className="bg-white selection:bg-[#ee4923] selection:text-white scroll-smooth">
+        <Hero        onViewChange={onViewChange} />
+        <BrandLogos />
+        <Services    onViewChange={onViewChange} />
+        <WhyChooseUs onViewChange={onViewChange} />
+        <HowItWorks />
+        <CTA         onViewChange={onViewChange} />
+      </div>
+    </>
   );
 }

@@ -94,6 +94,7 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +106,11 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
         const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', data.user.id).single();
         onAuthSuccess({ name: profile?.full_name || data.user.email || '', email: data.user.email || '', isStaff: profile?.role === 'admin' });
       } else {
+        if (pw !== confirmPw) {
+          setError('Passwords do not match.');
+          return;
+        }
+
         await api.signup({
           fullName: name.trim(),
           email: email.trim(),
@@ -122,13 +128,21 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
   const handleGoogle = async () => {
     setError('');
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
+    });
     if (error) setError(error.message);
   };
 
   const toggle = () => {
     setMode(p => p === 'login' ? 'signup' : 'login');
-    setName(''); setPhone(''); setEmail(''); setPw(''); setError(''); setConfirmed(false);
+    setName(''); setPhone(''); setEmail(''); setPw(''); setConfirmPw(''); setError(''); setConfirmed(false);
   };
 
   /* Left panel ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â dark photo overlay palette */
@@ -335,7 +349,7 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                   <button
                     type="button"
                     className="wng-toggle"
-                    onClick={() => { setConfirmed(false); setMode('login'); setPw(''); setError(''); }}
+                    onClick={() => { setConfirmed(false); setMode('login'); setPw(''); setConfirmPw(''); setError(''); }}
                     style={{ marginTop:'14px', background:'none', border:'none', color: R.orange, fontWeight:600, cursor:'pointer', padding:0, fontSize:'13px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}
                   >
                     Back to Sign In
@@ -419,6 +433,24 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                     </button>
                   </div>
                 </div>
+
+                {mode === 'signup' && (
+                  <div>
+                    <label style={lbl}>Confirm Password</label>
+                    <div style={{ position:'relative' }}>
+                      <span style={ico}><Lock size={14} /></span>
+                      <input
+                        className="wng-inp"
+                        type={showPw ? 'text' : 'password'}
+                        required
+                        value={confirmPw}
+                        onChange={e => setConfirmPw(e.target.value)}
+                        placeholder="Re-enter password"
+                        style={inp}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Submit */}
                 <button type="submit" disabled={loading} className="wng-btn" style={{

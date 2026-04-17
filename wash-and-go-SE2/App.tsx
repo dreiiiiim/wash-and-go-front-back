@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
 import BookingWizard from './components/BookingWizard';
@@ -28,6 +28,11 @@ export default function App() {
   const [services, setServices] = useState<ServicePackage[]>(SERVICES);
   const [userBookings, setUserBookings] = useState<Booking[]>([]);
   const [loadingUserBookings, setLoadingUserBookings] = useState(false);
+  const [userBookingsError, setUserBookingsError] = useState<string | null>(null);
+
+  // Track whether user is already authenticated so token refreshes (which also
+  // fire SIGNED_IN) don't redirect away from whatever page the user is on.
+  const isAuthenticatedRef = useRef(false);
 
   // Fetch live service prices on mount
   useEffect(() => {
@@ -50,6 +55,8 @@ export default function App() {
         setToken(null);
         setBookings([]);
         setUserBookings([]);
+        setUserBookingsError(null);
+        isAuthenticatedRef.current = false;
       }
     });
 
@@ -77,11 +84,13 @@ export default function App() {
 
     setUser(appUser);
 
-    // Navigate to the correct view on new sign-in (covers Google OAuth redirect + email login)
-    if (event === 'SIGNED_IN') {
+    // Only navigate on a genuine new sign-in (user was logged out before).
+    // Supabase v2 also fires SIGNED_IN on token refresh (tab refocus) — ignore those.
+    if (event === 'SIGNED_IN' && !isAuthenticatedRef.current) {
       setView(isStaff ? 'ADMIN' : 'PROFILE');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    isAuthenticatedRef.current = true;
 
     // If admin, fetch all bookings; if customer, fetch their own
     if (isStaff) {
@@ -101,8 +110,11 @@ export default function App() {
     try {
       const data = await api.getMyBookings(t);
       setUserBookings(data);
-    } catch {
-      // silently fail — UI shows empty state
+      setUserBookingsError(null);
+    } catch (err) {
+      console.error('Failed to load customer bookings', err);
+      setUserBookings([]);
+      setUserBookingsError('We could not load your bookings right now. Please refresh and try again.');
     } finally {
       setLoadingUserBookings(false);
     }
@@ -110,6 +122,7 @@ export default function App() {
 
   const handleNewBooking = (booking: Booking) => {
     setBookings(prev => [booking, ...prev]);
+    setUserBookings(prev => [booking, ...prev.filter(b => b.id !== booking.id)]);
     alert('Booking Submitted Successfully! Please wait for confirmation.');
     setView('HOME');
   };
@@ -146,10 +159,23 @@ export default function App() {
     }
   };
 
-  const handleAuthSuccess = (loggedInUser: AppUser) => {
+  const handleAuthSuccess = async (loggedInUser: AppUser) => {
     setUser(loggedInUser);
     setView(loggedInUser.isStaff ? 'ADMIN' : 'PROFILE');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return;
+
+    setToken(session.access_token);
+    if (loggedInUser.isStaff) {
+      try {
+        const data = await api.getAllBookings(session.access_token);
+        setBookings(data);
+      } catch { /* ignore — will show empty */ }
+    } else {
+      loadUserBookings(session.access_token);
+    }
   };
 
   const handleLogout = async () => {
@@ -157,12 +183,14 @@ export default function App() {
     setUser(null);
     setToken(null);
     setBookings([]);
+    setUserBookings([]);
+    setUserBookingsError(null);
     setView('HOME');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleViewChange = (newView: ViewType) => {
-    if (newView === 'CLIENT' && !user) {
+    if ((newView === 'CLIENT' || newView === 'STATUS') && !user) {
       setView('AUTH');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -175,17 +203,26 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentView={view} onViewChange={handleViewChange} user={user} onLogout={handleLogout} />
 
-      <main className={`flex-grow ${view !== 'HOME' && view !== 'AUTH' ? 'container mx-auto px-4 py-8' : ''}`}>
+      <main className="flex-grow">
         {view === 'HOME' && <HomePage onViewChange={handleViewChange} />}
         {view === 'AUTH' && <AuthPage onAuthSuccess={handleAuthSuccess} />}
         {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} services={services} />}
         {view === 'SERVICES' && <ServicesAndRates onBookNow={() => handleViewChange('CLIENT')} services={services} />}
-        {view === 'STATUS' && <CheckStatus />}
+        {view === 'STATUS' && (
+          <CheckStatus
+            user={user}
+            userBookings={userBookings}
+            loading={loadingUserBookings}
+            loadError={userBookingsError}
+            onRefresh={user ? () => loadUserBookings() : undefined}
+          />
+        )}
         {view === 'PROFILE' && user && (
           <UserProfile
             user={user}
             userBookings={userBookings}
             loading={loadingUserBookings}
+            loadError={userBookingsError}
             onRefresh={() => loadUserBookings()}
           />
         )}

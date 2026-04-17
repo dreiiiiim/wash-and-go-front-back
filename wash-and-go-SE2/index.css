@@ -1,11 +1,55 @@
 /* Brand color variables */
-:root {
-  --brand-orange: #ee4923;
-  --brand-dark: #383838;
+@import "tailwindcss";
+
+/* ── Hussar Bold — all weights map to the same file ── */
+@font-face {
+  font-family: 'Hussar';
+  src: url('/assets/fonts/HussarBold.otf') format('opentype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
 }
 
-/* Only keyframes that Tailwind CSS cannot generate */
+/* ── Peso sign fallback — Hussar lacks ₱ (U+20B1), use system font for it ── */
+@font-face {
+  font-family: 'Hussar';
+  src: local('Arial'), local('Helvetica Neue'), local('sans-serif');
+  font-weight: 100 900;
+  unicode-range: U+20B1;
+}
+
+:root {
+  --brand-orange: #ee4923;
+  --brand-amber:  #F4921F;
+  --brand-dark:   #383838;
+  --font-primary: 'Hussar', sans-serif;
+}
+
+/* Global — Hussar for everything */
+body {
+  font-family: 'Hussar', sans-serif;
+}
+
+/* Helper classes — font-lovelo kept as alias so no component changes needed */
+.font-lovelo  { font-family: 'Hussar', sans-serif; }
+.font-hussar  { font-family: 'Hussar', sans-serif; }
+
+/* Brand gradient utility */
+.brand-gradient { background: linear-gradient(135deg, #ee4923 0%, #F4921F 100%); }
+
+/* Scroll logo keyframe (HomePage carousel) */
 @keyframes scroll-logos {
-  0% { transform: translateX(0); }
+  0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* Fade-in utility */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn .35s ease both; }
+
+@theme {
+  --font-sans: 'Hussar', sans-serif;
 }
