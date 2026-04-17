@@ -1,0 +1,11 @@
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+
+[phases.install]
+cmds = ["cd wash-and-go-backend && npm ci"]
+
+[phases.build]
+cmds = ["cd wash-and-go-backend && npm run build"]
+
+[start]
+cmd = "cd wash-and-go-backend && npm run start:prod"
