@@ -207,6 +207,7 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [savingAll, setSavingAll]               = useState(false);
   const [showDiff, setShowDiff]                 = useState(false);
+  const [filterCategory, setFilterCategory]     = useState<string>('All');
 
   // ── Booking Stats ──────────────────────────────────────────────────────────
   const totalBookings   = bookings.length;
@@ -585,11 +586,23 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
 
               {/* ── Service Sidebar ── */}
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#fafafa' }}>
-                  <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400">Services</p>
-                  <span className="font-lovelo text-[9px] font-black px-2 py-0.5 rounded-full text-gray-400" style={{ backgroundColor: '#f3f4f6' }}>
-                    {services.length}
-                  </span>
+                <div className="px-4 py-3 border-b border-gray-100 space-y-2.5" style={{ backgroundColor: '#fafafa' }}>
+                  <div className="flex items-center justify-between">
+                    <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400">Services</p>
+                    <span className="font-lovelo text-[9px] font-black px-2 py-0.5 rounded-full text-gray-400" style={{ backgroundColor: '#f3f4f6' }}>
+                      {services.length}
+                    </span>
+                  </div>
+                  <select
+                    value={filterCategory}
+                    onChange={e => { setFilterCategory(e.target.value); setSelectedServiceId(null); }}
+                    className="font-lovelo w-full text-[10px] font-black px-3 py-2 border-2 border-gray-100 rounded-xl outline-none focus:border-orange-400 bg-white transition-all"
+                    style={{ color: filterCategory === 'All' ? '#9ca3af' : (catAccents[filterCategory] ?? '#383838') }}>
+                    <option value="All">All Categories</option>
+                    {Object.keys(servicesByCategory).map(cat => (
+                      <option key={cat} value={cat}>{categoryLabels[cat] ?? cat}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {services.length === 0 ? (
@@ -599,7 +612,7 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-50">
-                    {(Object.entries(servicesByCategory) as [string, ServicePackage[]][]).map(([cat, catServices]) => (
+                    {(Object.entries(servicesByCategory) as [string, ServicePackage[]][]).filter(([cat]) => filterCategory === 'All' || cat === filterCategory).map(([cat, catServices]) => (
                       <div key={cat}>
                         {/* Category header */}
                         <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: '#fafafa' }}>
