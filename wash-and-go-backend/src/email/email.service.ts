@@ -531,7 +531,7 @@ export class EmailService {
       greetingTimeout,
       socketTimeout,
       family: 4,
-    });
+    } as any);
 
     this.logger.log(
       `SMTP transporter initialized on ${host}:${port} (timeouts: connect=${connectionTimeout}ms, greet=${greetingTimeout}ms, socket=${socketTimeout}ms)`,
