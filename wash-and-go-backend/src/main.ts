@@ -7,16 +7,37 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   const stripQuotes = (s: string) => s.replace(/^["']|["']$/g, '');
+  const normalizeConfiguredOrigin = (value: string): string => {
+    const cleaned = stripQuotes(value.trim()).replace(/\/+$/, '');
+    if (!cleaned) return '';
+    if (cleaned.includes('*')) return cleaned;
+    try {
+      return new URL(cleaned).origin;
+    } catch {
+      return cleaned;
+    }
+  };
+  const normalizeRequestOrigin = (value: string): string => {
+    const cleaned = stripQuotes(value.trim()).replace(/\/+$/, '');
+    try {
+      return new URL(cleaned).origin;
+    } catch {
+      return cleaned;
+    }
+  };
   const configuredCORSOrigins = stripQuotes(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '');
   const configuredOrigins = [
     ...configuredCORSOrigins
       .split(',')
-      .map((origin) => stripQuotes(origin.trim()))
+      .map((origin) => normalizeConfiguredOrigin(origin))
       .filter(Boolean),
     'http://localhost:3000',
+    'https://wash-and-go-front-back.pages.dev',
+    'https://*.wash-and-go-front-back.pages.dev',
     'https://wash-and-go-front-back-*.vercel.app',
     'https://wash-and-go-front-back*.vercel.app',
   ]
+    .map((origin) => normalizeConfiguredOrigin(origin))
     .filter(Boolean)
     .filter((origin, index, all) => all.indexOf(origin) === index);
 
@@ -29,13 +50,14 @@ async function bootstrap() {
   const allowAllVercelOrigins = rawAllowVercel.toLowerCase() === 'true';
 
   const isAllowedOrigin = (origin: string): boolean => {
-    if (exactOrigins.includes(origin)) return true;
-    if (wildcardOrigins.some((pattern) => pattern.test(origin))) return true;
+    const normalizedOrigin = normalizeRequestOrigin(origin);
+    if (exactOrigins.includes(normalizedOrigin)) return true;
+    if (wildcardOrigins.some((pattern) => pattern.test(normalizedOrigin))) return true;
 
     if (!allowAllVercelOrigins) return false;
 
     try {
-      return new URL(origin).hostname.endsWith('.vercel.app');
+      return new URL(normalizedOrigin).hostname.endsWith('.vercel.app');
     } catch {
       return false;
     }
