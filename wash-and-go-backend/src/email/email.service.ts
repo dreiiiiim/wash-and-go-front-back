@@ -530,6 +530,7 @@ export class EmailService {
       connectionTimeout,
       greetingTimeout,
       socketTimeout,
+      family: 4,
     });
 
     this.logger.log(
