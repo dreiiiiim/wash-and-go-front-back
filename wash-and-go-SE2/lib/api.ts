@@ -3,7 +3,27 @@ import { Booking } from '../types';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, options);
+  const timeoutMs = 20000;
+  const controller = options?.signal ? null : new AbortController();
+  const timeoutId = controller
+    ? setTimeout(() => controller.abort(), timeoutMs)
+    : null;
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      signal: options?.signal || controller?.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+
   if (!res.ok) {
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(msg);

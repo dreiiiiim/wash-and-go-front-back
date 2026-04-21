@@ -2,9 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { Logger } from '@nestjs/common';
+import { setDefaultResultOrder } from 'node:dns';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  try {
+    // Prefer IPv4 for outbound DNS resolution (helps avoid SMTP IPv6 ENETUNREACH on some hosts).
+    setDefaultResultOrder('ipv4first');
+  } catch (error) {
+    logger.warn(`Unable to set DNS result order to ipv4first: ${(error as Error)?.message || error}`);
+  }
   const app = await NestFactory.create(AppModule);
   const stripQuotes = (s: string) => s.replace(/^["']|["']$/g, '');
   const normalizeConfiguredOrigin = (value: string): string => {

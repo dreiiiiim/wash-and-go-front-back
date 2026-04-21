@@ -121,6 +121,7 @@ function bookingInfoBlock(
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private transporter?: nodemailer.Transporter;
+  private mailTimeoutMs?: number;
 
   constructor(private readonly config: ConfigService) {}
 
@@ -456,13 +457,49 @@ export class EmailService {
 
   private async sendMail(input: { to: string; subject: string; html: string; text: string }) {
     const transporter = this.getTransporter();
-    await transporter.sendMail({
-      from: this.getFromAddress(),
-      to: input.to,
-      subject: input.subject,
-      html: input.html,
-      text: input.text,
-    });
+    await this.withTimeout(
+      transporter.sendMail({
+        from: this.getFromAddress(),
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        text: input.text,
+      }),
+      this.getMailTimeoutMs(),
+      'SMTP send timed out',
+    );
+  }
+
+  private getMailTimeoutMs(): number {
+    if (this.mailTimeoutMs) return this.mailTimeoutMs;
+    const raw = this.config.get<string>('SMTP_TIMEOUT_MS') || '15000';
+    const parsed = Number(raw);
+    this.mailTimeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 15000;
+    return this.mailTimeoutMs;
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(label)), timeoutMs);
+      });
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  private getSmtpBoolean(name: string, fallback: boolean): boolean {
+    const value = (this.config.get<string>(name) ?? '').trim().toLowerCase();
+    if (!value) return fallback;
+    return value === 'true' || value === '1' || value === 'yes';
+  }
+
+  private getSmtpNumber(name: string, fallback: number): number {
+    const raw = (this.config.get<string>(name) ?? '').trim();
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
   }
 
   private getTransporter(): nodemailer.Transporter {
@@ -472,7 +509,7 @@ export class EmailService {
     const portRaw = this.config.get<string>('SMTP_PORT') || '587';
     const user = this.config.get<string>('SMTP_USER');
     const pass = this.config.get<string>('SMTP_PASS');
-    const secure = this.config.get<string>('SMTP_SECURE') === 'true';
+    const secure = this.getSmtpBoolean('SMTP_SECURE', false);
 
     if (!host || !user || !pass) {
       throw new InternalServerErrorException(
@@ -481,8 +518,23 @@ export class EmailService {
     }
 
     const port = Number(portRaw);
-    this.transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
-    this.logger.log(`SMTP transporter initialized on ${host}:${port}`);
+    const connectionTimeout = this.getSmtpNumber('SMTP_CONNECTION_TIMEOUT_MS', 10000);
+    const greetingTimeout = this.getSmtpNumber('SMTP_GREETING_TIMEOUT_MS', 10000);
+    const socketTimeout = this.getSmtpNumber('SMTP_SOCKET_TIMEOUT_MS', 15000);
+
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      connectionTimeout,
+      greetingTimeout,
+      socketTimeout,
+    });
+
+    this.logger.log(
+      `SMTP transporter initialized on ${host}:${port} (timeouts: connect=${connectionTimeout}ms, greet=${greetingTimeout}ms, socket=${socketTimeout}ms)`,
+    );
     return this.transporter;
   }
 
