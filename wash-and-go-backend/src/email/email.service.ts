@@ -1,6 +1,5 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
 
 type VerificationEmailParams = {
   to: string;
@@ -120,7 +119,6 @@ function bookingInfoBlock(
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private transporter?: nodemailer.Transporter;
   private mailTimeoutMs?: number;
 
   constructor(private readonly config: ConfigService) {}
@@ -456,23 +454,56 @@ export class EmailService {
   }
 
   private async sendMail(input: { to: string; subject: string; html: string; text: string }) {
-    const transporter = this.getTransporter();
-    await this.withTimeout(
-      transporter.sendMail({
-        from: this.getFromAddress(),
-        to: input.to,
-        subject: input.subject,
-        html: input.html,
-        text: input.text,
+    const apiKey = this.getBrevoApiKey();
+    const baseUrl = this.getBrevoBaseUrl();
+    const sender = this.getSender();
+    const recipients = this.parseRecipients(input.to);
+    const sandboxEnabled = this.getBoolean('BREVO_SANDBOX', false);
+
+    const requestBody: Record<string, unknown> = {
+      sender,
+      to: recipients,
+      subject: input.subject,
+      htmlContent: input.html,
+      textContent: input.text,
+    };
+
+    if (sandboxEnabled) {
+      requestBody.headers = { 'X-Sib-Sandbox': 'drop' };
+    }
+
+    const response = await this.withTimeout(
+      fetch(`${baseUrl}/v3/smtp/email`, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify(requestBody),
       }),
       this.getMailTimeoutMs(),
-      'SMTP send timed out',
+      'Brevo send timed out',
     );
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => response.statusText);
+      this.logger.error(`Brevo send failed (${response.status}): ${details}`);
+      throw new InternalServerErrorException('Email delivery failed. Please try again.');
+    }
+
+    const payload = (await response.json().catch(() => null)) as { messageId?: string } | null;
+    if (payload?.messageId) {
+      this.logger.log(`Brevo email sent: ${payload.messageId}`);
+    }
   }
 
   private getMailTimeoutMs(): number {
     if (this.mailTimeoutMs) return this.mailTimeoutMs;
-    const raw = this.config.get<string>('SMTP_TIMEOUT_MS') || '15000';
+    const raw =
+      this.config.get<string>('BREVO_TIMEOUT_MS') ||
+      this.config.get<string>('SMTP_TIMEOUT_MS') ||
+      '15000';
     const parsed = Number(raw);
     this.mailTimeoutMs = Number.isFinite(parsed) && parsed > 0 ? parsed : 15000;
     return this.mailTimeoutMs;
@@ -490,59 +521,48 @@ export class EmailService {
     }
   }
 
-  private getSmtpBoolean(name: string, fallback: boolean): boolean {
+  private getBoolean(name: string, fallback: boolean): boolean {
     const value = (this.config.get<string>(name) ?? '').trim().toLowerCase();
     if (!value) return fallback;
     return value === 'true' || value === '1' || value === 'yes';
   }
 
-  private getSmtpNumber(name: string, fallback: number): number {
-    const raw = (this.config.get<string>(name) ?? '').trim();
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  private getBrevoApiKey(): string {
+    const apiKey = (this.config.get<string>('BREVO_API_KEY') || '').trim();
+    if (!apiKey) {
+      throw new InternalServerErrorException('Email is not configured. Set BREVO_API_KEY.');
+    }
+    return apiKey;
   }
 
-  private getTransporter(): nodemailer.Transporter {
-    if (this.transporter) return this.transporter;
+  private getBrevoBaseUrl(): string {
+    const baseUrl = (this.config.get<string>('BREVO_BASE_URL') || 'https://api.brevo.com').trim();
+    return baseUrl.replace(/\/+$/, '');
+  }
 
-    const host = this.config.get<string>('SMTP_HOST');
-    const portRaw = this.config.get<string>('SMTP_PORT') || '587';
-    const user = this.config.get<string>('SMTP_USER');
-    const pass = this.config.get<string>('SMTP_PASS');
-    const secure = this.getSmtpBoolean('SMTP_SECURE', false);
-
-    if (!host || !user || !pass) {
+  private getSender(): { email: string; name: string } {
+    const email =
+      (this.config.get<string>('BREVO_SENDER_EMAIL') || this.config.get<string>('SMTP_FROM') || '').trim();
+    const name =
+      (this.config.get<string>('BREVO_SENDER_NAME') || this.config.get<string>('SMTP_FROM_NAME') || 'Wash & Go Auto Salon').trim();
+    if (!email) {
       throw new InternalServerErrorException(
-        'Email is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS.',
+        'Email sender is not configured. Set BREVO_SENDER_EMAIL or SMTP_FROM.',
       );
     }
-
-    const port = Number(portRaw);
-    const connectionTimeout = this.getSmtpNumber('SMTP_CONNECTION_TIMEOUT_MS', 10000);
-    const greetingTimeout = this.getSmtpNumber('SMTP_GREETING_TIMEOUT_MS', 10000);
-    const socketTimeout = this.getSmtpNumber('SMTP_SOCKET_TIMEOUT_MS', 15000);
-
-    this.transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      connectionTimeout,
-      greetingTimeout,
-      socketTimeout,
-      family: 4,
-    } as any);
-
-    this.logger.log(
-      `SMTP transporter initialized on ${host}:${port} (timeouts: connect=${connectionTimeout}ms, greet=${greetingTimeout}ms, socket=${socketTimeout}ms)`,
-    );
-    return this.transporter;
+    return { email, name };
   }
 
-  private getFromAddress(): string {
-    const fromAddress = this.config.get<string>('SMTP_FROM') || this.config.get<string>('SMTP_USER');
-    const fromName = this.config.get<string>('SMTP_FROM_NAME') || 'Wash & Go Auto Salon';
-    return `"${fromName}" <${fromAddress}>`;
+  private parseRecipients(to: string): Array<{ email: string }> {
+    const emails = to
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .map((entry) => entry.replace(/^"[^"]*"\s*<([^>]+)>$/, '$1').trim());
+    if (!emails.length) {
+      throw new InternalServerErrorException('No recipient email provided.');
+    }
+    return emails.map((email) => ({ email }));
   }
 
   private getAdminNotificationEmails(): string[] {
