@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -9,10 +11,15 @@ import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from '../supabase/supabase.service';
 import { EmailService } from '../email/email.service';
 import { EmailSignupDto } from './dto/email-signup.dto';
+import { RequestEmailChangeDto } from './dto/request-email-change.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly resetWindowMs = 60_000;
+  private readonly resetMaxRequestsPerWindow = 3;
+  private readonly resetRequestTracker = new Map<string, number[]>();
 
   constructor(
     private supabase: SupabaseService,
@@ -86,6 +93,105 @@ export class AuthService {
     };
   }
 
+  async requestEmailChange(userId: string, currentEmail: string, dto: RequestEmailChangeDto) {
+    const newEmail = dto.newEmail.trim().toLowerCase();
+
+    if (newEmail === currentEmail.toLowerCase()) {
+      throw new BadRequestException('New email must be different from current email.');
+    }
+
+    const redirectTo =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+
+    const { data, error } = await this.supabase
+      .getAdminClient()
+      .auth.admin.generateLink({
+        type: 'email_change_new',
+        email: currentEmail,
+        newEmail,
+        options: { redirectTo },
+      });
+
+    if (error || !data?.properties?.action_link) {
+      throw new BadRequestException(error?.message || 'Unable to generate email change link.');
+    }
+
+    const profile = await this.getProfile(userId).catch(() => null);
+
+    try {
+      await this.emailService.sendEmailChangeVerificationEmail({
+        to: newEmail,
+        fullName: profile?.full_name,
+        oldEmail: currentEmail,
+        confirmationUrl: data.properties.action_link,
+      });
+    } catch (mailError: any) {
+      this.logger.error(`Email change email failed for ${newEmail}: ${mailError?.message}`);
+      throw new InternalServerErrorException(
+        'Unable to send verification email. Please try again.',
+      );
+    }
+
+    return { message: 'Verification email sent. Check your new inbox and confirm to apply the change.' };
+  }
+
+  async requestPasswordReset(dto: RequestPasswordResetDto, requesterIp?: string) {
+    const email = dto.email?.trim().toLowerCase();
+    if (!email) {
+      throw new BadRequestException('Email is required.');
+    }
+
+    const ipKey = requesterIp?.trim() || 'unknown';
+    if (this.isPasswordResetRateLimited(ipKey)) {
+      throw new HttpException(
+        'Too many reset attempts. Please try again in a minute.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const redirectTo =
+      dto.redirectTo?.trim() ||
+      this.config.get<string>('FRONTEND_URL') ||
+      'http://localhost:5173';
+
+    try {
+      const { data, error } = await this.supabase.getAdminClient().auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo },
+      });
+
+      if (error || !data?.properties?.action_link) {
+        this.logger.log(`Password reset requested for ${email}; no reset link issued.`);
+        return {
+          message: 'If an account exists for this email, a password reset link has been sent.',
+        };
+      }
+
+      try {
+        const fullName =
+          (data.user?.user_metadata as Record<string, unknown> | undefined)?.full_name;
+        await this.emailService.sendPasswordResetEmail({
+          to: email,
+          fullName: typeof fullName === 'string' ? fullName : undefined,
+          resetUrl: data.properties.action_link,
+        });
+      } catch (mailError: any) {
+        this.logger.error(
+          `Password reset email failed for ${email}: ${mailError?.message || mailError}`,
+        );
+      }
+    } catch (error: any) {
+      this.logger.error(
+        `Password reset request failed for ${email}: ${error?.message || error}`,
+      );
+    }
+
+    return {
+      message: 'If an account exists for this email, a password reset link has been sent.',
+    };
+  }
+
   /**
    * Generates the Google OAuth redirect URL via Supabase Auth.
    * The frontend redirects the user to this URL to begin the OAuth flow.
@@ -135,5 +241,22 @@ export class AuthService {
 
     if (error) throw new UnauthorizedException(error.message);
     return data;
+  }
+
+  private isPasswordResetRateLimited(ipKey: string): boolean {
+    const now = Date.now();
+    const cutoff = now - this.resetWindowMs;
+    const recentAttempts = (this.resetRequestTracker.get(ipKey) || []).filter(
+      (timestamp) => timestamp > cutoff,
+    );
+
+    if (recentAttempts.length >= this.resetMaxRequestsPerWindow) {
+      this.resetRequestTracker.set(ipKey, recentAttempts);
+      return true;
+    }
+
+    recentAttempts.push(now);
+    this.resetRequestTracker.set(ipKey, recentAttempts);
+    return false;
   }
 }

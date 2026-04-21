@@ -11,6 +11,7 @@ import {
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { AddUpdateDto } from './dto/add-update.dto';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -77,5 +78,16 @@ export class BookingsController {
     @CurrentUser() user: any,
   ) {
     return this.bookingsService.updateStatus(id, dto.status, user.id);
+  }
+
+  /** POST /api/bookings/:id/updates — Add progress update with photos (admin only) */
+  @UseGuards(SupabaseAuthGuard)
+  @Post(':id/updates')
+  addUpdate(
+    @Param('id') id: string,
+    @Body() dto: AddUpdateDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.bookingsService.addUpdate(id, dto.message, dto.imageUrls || [], user.id);
   }
 }

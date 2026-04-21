@@ -1,9 +1,12 @@
-import { Body, Controller, Get, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SupabaseAuthGuard } from './guards/supabase-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { EmailSignupDto } from './dto/email-signup.dto';
+import { RequestEmailChangeDto } from './dto/request-email-change.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -12,6 +15,23 @@ export class AuthController {
   @Post('signup')
   async signup(@Body() dto: EmailSignupDto) {
     return this.authService.signUpWithEmail(dto);
+  }
+
+  @Post('request-password-reset')
+  async requestPasswordReset(
+    @Body() dto: RequestPasswordResetDto,
+    @Req() req: Request,
+  ) {
+    return this.authService.requestPasswordReset(dto, req.ip);
+  }
+
+  @UseGuards(SupabaseAuthGuard)
+  @Patch('request-email-change')
+  async requestEmailChange(
+    @Body() dto: RequestEmailChangeDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.authService.requestEmailChange(user.id, user.email, dto);
   }
 
   /**

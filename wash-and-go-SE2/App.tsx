@@ -15,6 +15,7 @@ import { api } from './lib/api';
 export type AppUser = {
   name: string;
   email: string;
+  phone?: string;
   isStaff: boolean;
 };
 
@@ -22,6 +23,7 @@ export type ViewType = 'HOME' | 'CLIENT' | 'ADMIN' | 'SERVICES' | 'STATUS' | 'AU
 
 export default function App() {
   const [view, setView] = useState<ViewType>('HOME');
+  const [forceRecoveryMode, setForceRecoveryMode] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [user, setUser] = useState<AppUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -43,11 +45,22 @@ export default function App() {
 
   // Listen to Supabase auth state (handles Google OAuth redirect)
   useEffect(() => {
+    if (window.location.hash.includes('type=recovery')) {
+      setForceRecoveryMode(true);
+      setView('AUTH');
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) handleSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setForceRecoveryMode(true);
+        setView('AUTH');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
       if (session) {
         handleSession(session, event);
       } else {
@@ -56,6 +69,7 @@ export default function App() {
         setBookings([]);
         setUserBookings([]);
         setUserBookingsError(null);
+        setForceRecoveryMode(false);
         isAuthenticatedRef.current = false;
       }
     });
@@ -71,7 +85,7 @@ export default function App() {
     // Fetch profile to get role
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, full_name')
+      .select('role, full_name, phone')
       .eq('id', supabaseUser.id)
       .single();
 
@@ -79,6 +93,7 @@ export default function App() {
     const appUser: AppUser = {
       name: profile?.full_name || supabaseUser.user_metadata?.full_name || supabaseUser.email,
       email: supabaseUser.email,
+      phone: profile?.phone || undefined,
       isStaff,
     };
 
@@ -86,7 +101,8 @@ export default function App() {
 
     // Only navigate on a genuine new sign-in (user was logged out before).
     // Supabase v2 also fires SIGNED_IN on token refresh (tab refocus) — ignore those.
-    if (event === 'SIGNED_IN' && !isAuthenticatedRef.current) {
+    const inRecoveryContext = window.location.hash.includes('type=recovery');
+    if (event === 'SIGNED_IN' && !isAuthenticatedRef.current && !inRecoveryContext) {
       setView(isStaff ? 'ADMIN' : 'PROFILE');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -137,16 +153,16 @@ export default function App() {
     }
   };
 
-  const handleAddUpdate = (id: string, message: string, imageUrl?: string) => {
-    const newUpdate = {
-      id: Math.random().toString(36).substring(2, 9),
-      timestamp: new Date().toISOString(),
-      message,
-      imageUrl,
-    };
-    setBookings(prev => prev.map(b =>
-      b.id === id ? { ...b, updates: [...(b.updates || []), newUpdate] } : b
-    ));
+  const handleAddUpdate = async (id: string, message: string, imageUrls: string[]) => {
+    if (!token) return;
+    try {
+      const saved = await api.addBookingUpdate(id, message, imageUrls, token);
+      setBookings(prev => prev.map(b =>
+        b.id === id ? { ...b, updates: [...(b.updates || []), saved] } : b
+      ));
+    } catch (err: any) {
+      alert(`Failed to post update: ${err.message}`);
+    }
   };
 
   const handleUpdateService = async (id: string, dto: object) => {
@@ -205,8 +221,14 @@ export default function App() {
 
       <main className="flex-grow">
         {view === 'HOME' && <HomePage onViewChange={handleViewChange} />}
-        {view === 'AUTH' && <AuthPage onAuthSuccess={handleAuthSuccess} />}
-        {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} services={services} />}
+        {view === 'AUTH' && (
+          <AuthPage
+            onAuthSuccess={handleAuthSuccess}
+            forceRecoveryMode={forceRecoveryMode}
+            onRecoveryModeHandled={() => setForceRecoveryMode(false)}
+          />
+        )}
+        {view === 'CLIENT' && <BookingWizard onSubmit={handleNewBooking} token={token} services={services} user={user} />}
         {view === 'SERVICES' && <ServicesAndRates onBookNow={() => handleViewChange('CLIENT')} services={services} />}
         {view === 'STATUS' && (
           <CheckStatus
@@ -220,10 +242,9 @@ export default function App() {
         {view === 'PROFILE' && user && (
           <UserProfile
             user={user}
-            userBookings={userBookings}
-            loading={loadingUserBookings}
-            loadError={userBookingsError}
-            onRefresh={() => loadUserBookings()}
+            onUserUpdate={(updates) => setUser(prev => prev ? { ...prev, ...updates } : null)}
+            onGoBookings={() => handleViewChange('STATUS')}
+            token={token}
           />
         )}
         {view === 'ADMIN' && (
@@ -286,7 +307,7 @@ export default function App() {
                 { label: 'Home', view: 'HOME' as const },
                 { label: 'Book a Service', view: 'CLIENT' as const },
                 { label: 'Services & Rates', view: 'SERVICES' as const },
-                { label: 'Check Booking Status', view: 'STATUS' as const },
+                { label: 'My Bookings', view: 'STATUS' as const },
               ].map(link => (
                 <li key={link.view}>
                   <button

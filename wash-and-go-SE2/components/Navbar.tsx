@@ -18,7 +18,7 @@ const navLinks: { label: string; view: ViewType; icon: React.ReactNode }[] = [
   { label: 'HOME',              view: 'HOME',     icon: <Home className="w-3.5 h-3.5" /> },
   { label: 'BOOK NOW',          view: 'CLIENT',   icon: <CalendarCheck className="w-3.5 h-3.5" /> },
   { label: 'SERVICES & RATES',  view: 'SERVICES', icon: <ClipboardList className="w-3.5 h-3.5" /> },
-  { label: 'CHECK STATUS',      view: 'STATUS',   icon: <SearchCheck className="w-3.5 h-3.5" /> },
+  { label: 'MY BOOKINGS',       view: 'STATUS',   icon: <SearchCheck className="w-3.5 h-3.5" /> },
 ];
 
 export default function Navbar({ currentView, onViewChange, user, onLogout }: NavbarProps) {

@@ -28,10 +28,16 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(dto),
     }),
-  // ── Services ──────────────────────────────────────────────
+
+  requestPasswordReset: (dto: { email: string; redirectTo?: string }) =>
+    request<{ message: string }>('/auth/request-password-reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto),
+    }),
+
   getServices: () => request<any[]>('/services'),
 
-  // ── Bookings ──────────────────────────────────────────────
   createBooking: (dto: object, token?: string) =>
     request<Booking>('/bookings', {
       method: 'POST',
@@ -67,7 +73,20 @@ export const api = {
       body: JSON.stringify(dto),
     }),
 
-  // ── Customer ───────────────────────────────────────────────
+  addBookingUpdate: (id: string, message: string, imageUrls: string[], token: string) =>
+    request<any>(`/bookings/${id}/updates`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({ message, imageUrls }),
+    }),
+
   getMyBookings: (token: string) =>
     request<Booking[]>('/bookings/my-bookings', { headers: authHeaders(token) }),
+
+  requestEmailChange: (newEmail: string, token: string) =>
+    request<{ message: string }>('/auth/request-email-change', {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ newEmail }),
+    }),
 };

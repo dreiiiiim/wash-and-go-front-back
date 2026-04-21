@@ -20,7 +20,6 @@ export class BookingsService {
   ) {}
 
   async create(dto: CreateBookingDto, userId?: string) {
-    // 1. Fetch service
     const { data: service, error: svcError } = await this.supabase
       .getAdminClient()
       .from('services')
@@ -33,13 +32,11 @@ export class BookingsService {
       throw new NotFoundException(`Service '${dto.serviceId}' not found`);
     }
 
-    // 2. Check slot availability
     const isAvailable = await this.isSlotAvailable(dto.date, dto.timeSlot, service.category);
     if (!isAvailable) {
       throw new ConflictException(`Time slot ${dto.timeSlot} on ${dto.date} is already full for this service type.`);
     }
 
-    // 3. Calculate price
     let totalPrice: number;
     if (service.is_lube_flat && service.lube_prices && dto.fuelType) {
       totalPrice = service.lube_prices[dto.fuelType];
@@ -51,10 +48,8 @@ export class BookingsService {
     }
     const downPaymentAmount = Math.round(totalPrice * 0.3);
 
-    // 4. Generate booking ID
     const id = `BK-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    // 5. Insert booking
     const { data, error } = await this.supabase
       .getAdminClient()
       .from('bookings')
@@ -92,7 +87,7 @@ export class BookingsService {
     const { data, error } = await this.supabase
       .getAdminClient()
       .from('bookings')
-      .select('*')
+      .select('*, booking_updates(*)')
       .eq('id', id.toUpperCase())
       .single();
 
@@ -118,7 +113,7 @@ export class BookingsService {
     let query = this.supabase
       .getAdminClient()
       .from('bookings')
-      .select('*')
+      .select('*, booking_updates(*)')
       .order('created_at', { ascending: false });
 
     if (filters?.status && filters.status !== 'ALL') {
@@ -130,12 +125,11 @@ export class BookingsService {
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return data.map(this.toBooking);
+    return data.map(row => this.toBooking(row));
   }
 
   async getBookedSlots(date: string, category?: string): Promise<string[]> {
-    // Determine max capacity for the requested category
-    let maxCapacity = 1; // Default
+    let maxCapacity = 1;
     if (category === 'LUBE') maxCapacity = 1;
     if (category === 'GROOMING') maxCapacity = 2;
     if (category === 'COATING') maxCapacity = 2;
@@ -153,7 +147,6 @@ export class BookingsService {
 
     const { data } = await query;
 
-    // Count bookings per time slot
     const slotCounts: Record<string, number> = {};
     if (data) {
       for (const b of data) {
@@ -161,8 +154,6 @@ export class BookingsService {
       }
     }
 
-    // A slot is "booked" if it reaches the max capacity for the requested category
-    // (If category is undefined, it defaults to maxCapacity = 1, which blocks all)
     return Object.keys(slotCounts).filter(slot => slotCounts[slot] >= maxCapacity);
   }
 
@@ -170,19 +161,15 @@ export class BookingsService {
     const { data, error } = await this.supabase
       .getAdminClient()
       .from('bookings')
-      .select('*')
+      .select('*, booking_updates(*)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
-    return (data || []).map(this.toBooking);
+    return (data || []).map(row => this.toBooking(row));
   }
 
-  async updateStatus(
-    id: string,
-    status: string,
-    requestingUserId: string,
-  ) {
+  async updateStatus(id: string, status: string, requestingUserId: string) {
     const { data: profile } = await this.supabase
       .getAdminClient()
       .from('profiles')
@@ -194,7 +181,6 @@ export class BookingsService {
       throw new ForbiddenException('Only admins can update booking status');
     }
 
-    // Normalize UI status strings to DB enum values
     const statusMap: Record<string, string> = {
       'pending': 'PENDING',
       'confirmed': 'CONFIRMED',
@@ -226,6 +212,58 @@ export class BookingsService {
     return booking;
   }
 
+  async addUpdate(
+    id: string,
+    message: string,
+    imageUrls: string[],
+    requestingUserId: string,
+  ) {
+    const { data: profile } = await this.supabase
+      .getAdminClient()
+      .from('profiles')
+      .select('role')
+      .eq('id', requestingUserId)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      throw new ForbiddenException('Only admins can add booking updates');
+    }
+
+    const { data: booking, error: bookingError } = await this.supabase
+      .getAdminClient()
+      .from('bookings')
+      .select('*')
+      .eq('id', id.toUpperCase())
+      .single();
+
+    if (bookingError || !booking) {
+      throw new NotFoundException(`Booking ${id} not found`);
+    }
+
+    const { data: update, error } = await this.supabase
+      .getAdminClient()
+      .from('booking_updates')
+      .insert({
+        booking_id: id.toUpperCase(),
+        message,
+        image_urls: imageUrls,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    void this.notifyProgressUpdate(booking, update);
+
+    return {
+      id: update.id,
+      timestamp: update.created_at,
+      message: update.message,
+      imageUrls: update.image_urls || [],
+      imageUrl: (update.image_urls || [])[0],
+    };
+  }
+
   async checkAvailability(date: string, timeSlot: string, category?: string) {
     const available = await this.isSlotAvailable(date, timeSlot, category);
     return { date, timeSlot, available, category };
@@ -253,11 +291,7 @@ export class BookingsService {
     return !data || data.length < maxCapacity;
   }
 
-  private async notifyBookingCreated(
-    booking: any,
-    customerName: string,
-    userId?: string,
-  ) {
+  private async notifyBookingCreated(booking: any, customerName: string, userId?: string) {
     try {
       const customerEmail = await this.getUserEmail(userId);
       if (customerEmail) {
@@ -304,6 +338,27 @@ export class BookingsService {
     }
   }
 
+  private async notifyProgressUpdate(booking: any, update: any) {
+    try {
+      const customerEmail = await this.getUserEmail(booking.user_id);
+      if (!customerEmail) return;
+
+      await this.emailService.sendProgressUpdateEmail({
+        to: customerEmail,
+        customerName: booking.customer_name,
+        bookingId: booking.id,
+        serviceName: booking.service_name,
+        date: booking.date,
+        timeSlot: booking.time_slot,
+        status: booking.status,
+        message: update.message,
+        imageUrls: update.image_urls || [],
+      });
+    } catch (error: any) {
+      this.logger.warn(`Progress update email notification failed: ${error?.message || error}`);
+    }
+  }
+
   private async getUserEmail(userId?: string): Promise<string | undefined> {
     if (!userId) return undefined;
     const { data, error } = await this.supabase
@@ -315,6 +370,17 @@ export class BookingsService {
   }
 
   private toBooking(row: any) {
+    const updates = (row.booking_updates || [])
+      .slice()
+      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((u: any) => ({
+        id: u.id,
+        timestamp: u.created_at,
+        message: u.message,
+        imageUrls: u.image_urls || [],
+        imageUrl: (u.image_urls || [])[0],
+      }));
+
     return {
       id: row.id,
       customerName: row.customer_name,
@@ -335,6 +401,7 @@ export class BookingsService {
       paymentProofUrl: row.payment_proof_url,
       paymentMethod: row.payment_method,
       createdAt: new Date(row.created_at).getTime(),
+      updates,
     };
   }
 }

@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Mail, Lock, User, Phone, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import type { AppUser } from '../App';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import washngobg from '../assets/washngobg.jpg';
 
-type AuthMode = 'login' | 'signup';
-interface AuthPageProps { onAuthSuccess: (user: AppUser) => void; }
+type AuthMode = 'login' | 'signup' | 'forgot' | 'recovery';
+interface AuthPageProps {
+  onAuthSuccess: (user: AppUser) => void;
+  forceRecoveryMode?: boolean;
+  onRecoveryModeHandled?: () => void;
+}
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
@@ -84,27 +88,93 @@ const CSS = `
 `;
 
 /* ÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚ÂÃƒÂ¢Ã¢â‚¬Â¢Ã‚Â */
-export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
+export default function AuthPage({
+  onAuthSuccess,
+  forceRecoveryMode = false,
+  onRecoveryModeHandled,
+}: AuthPageProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [recoveryDone, setRecoveryDone] = useState(false);
+  const [showGoogleHint, setShowGoogleHint] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
 
+  useEffect(() => {
+    if (!forceRecoveryMode) return;
+    setMode('recovery');
+    setConfirmed(false);
+    setResetSent(false);
+    setRecoveryDone(false);
+    setError('');
+    setPw('');
+    setConfirmPw('');
+  }, [forceRecoveryMode]);
+
+  const isInvalidCredentialsError = (message: string) => {
+    const normalized = message.toLowerCase();
+    return (
+      normalized.includes('invalid login credentials') ||
+      normalized.includes('invalid credentials') ||
+      normalized.includes('invalid_grant')
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    setError('');
+    setShowGoogleHint(false);
+    setLoading(true);
     try {
       if (mode === 'login') {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
-        if (error) throw error;
+        if (error) {
+          if (isInvalidCredentialsError(error.message || '')) {
+            setShowGoogleHint(true);
+            throw new Error('Invalid email or password. If this account was created with Google, continue with Google or create/reset your app password.');
+          }
+          throw error;
+        }
         const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', data.user.id).single();
         onAuthSuccess({ name: profile?.full_name || data.user.email || '', email: data.user.email || '', isStaff: profile?.role === 'admin' });
+      } else if (mode === 'forgot') {
+        await api.requestPasswordReset({
+          email: email.trim(),
+          redirectTo: window.location.origin,
+        });
+        setResetSent(true);
+        return;
+      } else if (mode === 'recovery') {
+        if (pw.length < 6) {
+          setError('Password must be at least 6 characters.');
+          return;
+        }
+        if (pw !== confirmPw) {
+          setError('Passwords do not match.');
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ password: pw });
+        if (error) throw error;
+
+        // Remove recovery tokens from URL hash.
+        if (window.location.hash) {
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+
+        await supabase.auth.signOut();
+        onRecoveryModeHandled?.();
+        setRecoveryDone(true);
+        setMode('login');
+        setPw('');
+        setConfirmPw('');
+        return;
       } else {
         if (pw !== confirmPw) {
           setError('Passwords do not match.');
@@ -128,6 +198,7 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
   const handleGoogle = async () => {
     setError('');
+    setShowGoogleHint(false);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -142,7 +213,18 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
   const toggle = () => {
     setMode(p => p === 'login' ? 'signup' : 'login');
-    setName(''); setPhone(''); setEmail(''); setPw(''); setConfirmPw(''); setError(''); setConfirmed(false);
+    setName(''); setPhone(''); setEmail(''); setPw(''); setConfirmPw(''); setError(''); setConfirmed(false); setResetSent(false); setRecoveryDone(false); setShowGoogleHint(false);
+  };
+
+  const goForgot = () => {
+    setMode('forgot');
+    setError(''); setResetSent(false); setRecoveryDone(false); setShowGoogleHint(false); setPw(''); setConfirmPw('');
+  };
+
+  const goLogin = () => {
+    setMode('login');
+    onRecoveryModeHandled?.();
+    setError(''); setResetSent(false); setRecoveryDone(false); setShowGoogleHint(false);
   };
 
   /* Left panel ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â dark photo overlay palette */
@@ -321,35 +403,71 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
               {/* Heading */}
               <div style={{ marginBottom:'1.5rem' }}>
                 <h2 style={{ fontFamily:"'Bebas Neue', sans-serif", fontSize:'34px', color: R.dark, letterSpacing:'.06em', lineHeight:1, margin:0 }}>
-                  {confirmed ? 'CHECK YOUR EMAIL' : mode === 'login' ? 'WELCOME BACK' : 'CREATE ACCOUNT'}
+                  {confirmed
+                    ? 'CHECK YOUR EMAIL'
+                    : resetSent
+                    ? 'CHECK YOUR EMAIL'
+                    : recoveryDone
+                    ? 'PASSWORD UPDATED'
+                    : mode === 'login'
+                    ? 'WELCOME BACK'
+                    : mode === 'forgot'
+                    ? 'CREATE / RESET PASSWORD'
+                    : mode === 'recovery'
+                    ? 'SET APP PASSWORD'
+                    : 'CREATE ACCOUNT'}
                 </h2>
                 <div style={{ width:'34px', height:'3px', background: R.orange, borderRadius:'2px', marginTop:'9px' }} />
                 <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, marginTop:'9px', lineHeight:1.5 }}>
-                  {confirmed ? 'Confirm your email to activate your account.' : mode === 'login' ? 'Sign in to manage your appointments.' : 'Register to start booking auto services.'}
+                  {confirmed
+                    ? 'Confirm your email to activate your account.'
+                    : resetSent
+                    ? 'If an account exists, a reset link has been sent.'
+                    : recoveryDone
+                    ? 'Your app password is ready. Sign in using email/password or Google.'
+                    : mode === 'login'
+                    ? 'Sign in to manage your appointments.'
+                    : mode === 'forgot'
+                    ? 'Enter your email and we\'ll send a create/reset app password link.'
+                    : mode === 'recovery'
+                    ? 'Set a password so this account can use email/password login too.'
+                    : 'Register to start booking auto services.'}
                 </p>
               </div>
 
-              {confirmed && (
+              {(confirmed || resetSent || recoveryDone) && (
                 <div style={{ textAlign:'center', marginBottom:'8px' }}>
                   <div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:'64px', height:'64px', borderRadius:'999px', background:'rgba(238,73,35,.12)', marginBottom:'12px' }}>
                     <Mail size={28} color={R.orange} />
                   </div>
                   <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, margin:'0 0 6px', lineHeight:1.6 }}>
-                    We sent a confirmation link to:
+                    {confirmed
+                      ? 'We sent a confirmation link to:'
+                      : resetSent
+                      ? 'If an account exists, a password link was sent to:'
+                      : 'Your app password was updated successfully.'}
                   </p>
-                  <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color: R.dark, fontWeight:700, margin:'0 0 10px', wordBreak:'break-word' }}>
-                    {email}
-                  </p>
+                  {(confirmed || resetSent) && (
+                    <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color: R.dark, fontWeight:700, margin:'0 0 10px', wordBreak:'break-word' }}>
+                      {email}
+                    </p>
+                  )}
                   <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, margin:0, lineHeight:1.6 }}>
-                    Click the link in the email to activate your account.
+                    {confirmed
+                      ? 'Click the link in the email to activate your account.'
+                      : resetSent
+                      ? 'Use that link to create or reset your app password.'
+                      : 'Use your new app password in manual sign-in when needed.'}
                   </p>
-                  <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, margin:'4px 0 0', lineHeight:1.6 }}>
-                    It may take a minute to arrive. Check your spam folder too.
-                  </p>
+                  {(confirmed || resetSent) && (
+                    <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, margin:'4px 0 0', lineHeight:1.6 }}>
+                      It may take a minute to arrive. Check your spam folder too.
+                    </p>
+                  )}
                   <button
                     type="button"
                     className="wng-toggle"
-                    onClick={() => { setConfirmed(false); setMode('login'); setPw(''); setConfirmPw(''); setError(''); }}
+                    onClick={() => { setConfirmed(false); setResetSent(false); setRecoveryDone(false); setMode('login'); setPw(''); setConfirmPw(''); setError(''); setShowGoogleHint(false); }}
                     style={{ marginTop:'14px', background:'none', border:'none', color: R.orange, fontWeight:600, cursor:'pointer', padding:0, fontSize:'13px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}
                   >
                     Back to Sign In
@@ -357,17 +475,118 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </div>
               )}
 
-              {!confirmed && (
+              {!confirmed && !resetSent && !recoveryDone && (
                 <>
               {/* Error banner */}
               {error && (
-                <div style={{ display:'flex', gap:'10px', background:'#fff5f5', border:'1px solid #fecaca', borderRadius:'10px', padding:'11px 13px', marginBottom:'16px' }}>
-                  <AlertCircle size={15} style={{ color:'#dc2626', flexShrink:0, marginTop:'1px' }} />
-                  <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color:'#dc2626', margin:0, lineHeight:1.45 }}>{error}</p>
+                <div style={{ background:'#fff5f5', border:'1px solid #fecaca', borderRadius:'10px', padding:'11px 13px', marginBottom:'16px' }}>
+                  <div style={{ display:'flex', gap:'10px' }}>
+                    <AlertCircle size={15} style={{ color:'#dc2626', flexShrink:0, marginTop:'1px' }} />
+                    <p style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color:'#dc2626', margin:0, lineHeight:1.45 }}>{error}</p>
+                  </div>
+                  {showGoogleHint && mode === 'login' && (
+                    <div style={{ display:'flex', gap:'16px', marginTop:'10px', paddingLeft:'25px', flexWrap:'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={handleGoogle}
+                        className="wng-toggle"
+                        style={{ background:'none', border:'none', color: R.orange, fontWeight:700, cursor:'pointer', padding:0, fontSize:'12px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}
+                      >
+                        Continue with Google
+                      </button>
+                      <button
+                        type="button"
+                        onClick={goForgot}
+                        className="wng-toggle"
+                        style={{ background:'none', border:'none', color: R.orange, fontWeight:700, cursor:'pointer', padding:0, fontSize:'12px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}
+                      >
+                        Create/Reset Password
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Google button */}
+              {/* Forgot password form */}
+              {mode === 'forgot' && (
+                <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'13px' }}>
+                  <div>
+                    <label style={lbl}>Email Address</label>
+                    <div style={{ position:'relative' }}>
+                      <span style={ico}><Mail size={14} /></span>
+                      <input className="wng-inp" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="juan@email.com" style={inp} />
+                    </div>
+                  </div>
+                  <button type="submit" disabled={loading} className="wng-btn" style={{
+                    width:'100%', padding:'14px', marginTop:'2px',
+                    background: R.orange, border:'none', borderRadius:'10px',
+                    color:'#fff', fontFamily:"'Bebas Neue', sans-serif",
+                    fontSize:'17px', letterSpacing:'.14em',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition:'filter .2s, opacity .2s',
+                  }}>
+                    {loading ? 'SENDING...' : 'SEND PASSWORD LINK'}
+                  </button>
+                  <p style={{ textAlign:'center', fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, marginTop:'4px' }}>
+                    <button type="button" onClick={goLogin} className="wng-toggle" style={{ background:'none', border:'none', color: R.orange, fontWeight:600, cursor:'pointer', padding:0, fontSize:'13px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}>
+                      Back to Sign In
+                    </button>
+                  </p>
+                </form>
+              )}
+
+              {/* Google button — login/signup only */}
+              {mode === 'recovery' && (
+                <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'13px' }}>
+                  <div>
+                    <label style={lbl}>New App Password</label>
+                    <div style={{ position:'relative' }}>
+                      <span style={ico}><Lock size={14} /></span>
+                      <input
+                        className="wng-inp"
+                        type={showPw ? 'text' : 'password'}
+                        required
+                        value={pw}
+                        onChange={e => setPw(e.target.value)}
+                        placeholder="Enter new password"
+                        style={{ ...inp, paddingRight:'42px' }}
+                      />
+                      <button type="button" className="wng-eye" onClick={() => setShowPw(p => !p)} style={{ position:'absolute', right:'12px', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'#9ca3af', cursor:'pointer', padding:0, display:'flex', transition:'color .15s' }}>
+                        {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={lbl}>Confirm Password</label>
+                    <div style={{ position:'relative' }}>
+                      <span style={ico}><Lock size={14} /></span>
+                      <input
+                        className="wng-inp"
+                        type={showPw ? 'text' : 'password'}
+                        required
+                        value={confirmPw}
+                        onChange={e => setConfirmPw(e.target.value)}
+                        placeholder="Re-enter password"
+                        style={inp}
+                      />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={loading} className="wng-btn" style={{
+                    width:'100%', padding:'14px', marginTop:'2px',
+                    background: R.orange, border:'none', borderRadius:'10px',
+                    color:'#fff', fontFamily:"'Bebas Neue', sans-serif",
+                    fontSize:'17px', letterSpacing:'.14em',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition:'filter .2s, opacity .2s',
+                  }}>
+                    {loading ? 'UPDATING...' : 'SET PASSWORD'}
+                  </button>
+                </form>
+              )}
+
+              {(mode === 'login' || mode === 'signup') && (
               <button type="button" onClick={handleGoogle} className="wng-google" style={{
                 width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:'11px',
                 padding:'12px 18px', background:'#ffffff', border:`1.5px solid ${R.border}`,
@@ -384,8 +603,10 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                   Continue with Google
                 </span>
               </button>
+              )}
 
-              {/* Divider */}
+              {/* Divider — login/signup only */}
+              {(mode === 'login' || mode === 'signup') && (
               <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'16px' }}>
                 <div style={{ flex:1, height:'1px', background: R.border }} />
                 <span style={{ fontFamily:"'DM Sans', sans-serif", fontSize:'10px', color: R.muted, letterSpacing:'.14em', textTransform:'uppercase', fontWeight:500 }}>
@@ -393,8 +614,10 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </span>
                 <div style={{ flex:1, height:'1px', background: R.border }} />
               </div>
+              )}
 
-              {/* Form */}
+              {/* Login / Signup Form */}
+              {(mode === 'login' || mode === 'signup') && (
               <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'13px' }}>
                 {mode === 'signup' && (
                   <>
@@ -424,7 +647,15 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </div>
 
                 <div>
-                  <label style={lbl}>Password</label>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
+                    <label style={{ ...lbl, marginBottom:0 }}>Password</label>
+                    {mode === 'login' && (
+                      <button type="button" onClick={goForgot} className="wng-toggle"
+                        style={{ background:'none', border:'none', color: R.muted, fontWeight:500, cursor:'pointer', padding:0, fontSize:'11px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}>
+                        Create/Reset password
+                      </button>
+                    )}
+                  </div>
                   <div style={{ position:'relative' }}>
                     <span style={ico}><Lock size={14} /></span>
                     <input className="wng-inp" type={showPw ? 'text' : 'password'} required value={pw} onChange={e => setPw(e.target.value)} placeholder="********" style={{ ...inp, paddingRight:'42px' }} />
@@ -464,14 +695,17 @@ export default function AuthPage({ onAuthSuccess }: AuthPageProps) {
                   {loading ? 'PLEASE WAIT...' : mode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}
                 </button>
               </form>
+              )}
 
-              {/* Toggle */}
+              {/* Toggle — login/signup only */}
+              {(mode === 'login' || mode === 'signup') && (
               <p style={{ textAlign:'center', fontFamily:"'DM Sans', sans-serif", fontSize:'13px', color: R.muted, marginTop:'18px' }}>
                 {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
                 <button type="button" onClick={toggle} className="wng-toggle" style={{ background:'none', border:'none', color: R.orange, fontWeight:600, cursor:'pointer', padding:0, fontSize:'13px', fontFamily:"'DM Sans', sans-serif", transition:'color .15s' }}>
                   {mode === 'login' ? 'Sign Up' : 'Sign In'}
                 </button>
               </p>
+              )}
                 </>
               )}
             </div>

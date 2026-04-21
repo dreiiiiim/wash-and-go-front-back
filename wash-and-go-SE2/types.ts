@@ -69,6 +69,7 @@ export interface BookingUpdate {
   timestamp: string;
   message: string;
   imageUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface Booking {

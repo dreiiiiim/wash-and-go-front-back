@@ -3,18 +3,20 @@ import { format, parseISO, addDays, subDays } from 'date-fns';
 import { Booking, ServicePackage, VehicleSize } from '../types';
 import {
   Filter, Calendar, Car, Bike, Wrench, Image as ImageIcon, Plus, X,
-  DollarSign, Save, ChevronDown, ChevronUp, CheckCircle, ChevronLeft,
+  DollarSign, Save, ChevronLeft,
   ChevronRight, Clock, CheckCircle2, XCircle, Loader2, BarChart3,
-  AlertCircle, TrendingUp, Users, Layers, RotateCcw,
+  AlertCircle, TrendingUp, Layers, RotateCcw, Upload,
+  Settings, QrCode, ImagePlus, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { supabase } from '../lib/supabase';
 
 interface AdminDashboardProps {
   bookings: Booking[];
   services: ServicePackage[];
   token: string | null;
   onUpdateStatus: (id: string, status: any) => void;
-  onAddUpdate: (id: string, message: string, imageUrl?: string) => void;
+  onAddUpdate: (id: string, message: string, imageUrls: string[]) => Promise<void>;
   onUpdateService: (id: string, dto: object) => Promise<void>;
 }
 
@@ -222,16 +224,336 @@ const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, o
   );
 };
 
+// ─── GCash QR Settings ────────────────────────────────────────────────────────
+const GcashQRSettings: React.FC = () => {
+  const [qrUrl, setQrUrl]               = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt]       = useState<string | null>(null);
+  const [loadingQr, setLoadingQr]       = useState(true);
+  const [editing, setEditing]           = useState(false);
+  const [newFile, setNewFile]           = useState<File | null>(null);
+  const [newPreview, setNewPreview]     = useState<string | null>(null);
+  const [confirming, setConfirming]     = useState(false);
+  const [saving, setSaving]             = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+  const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null);
+  const [dragging, setDragging]         = useState(false);
+  const fileInputRef                    = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { loadQr(); }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const loadQr = async () => {
+    setLoadingQr(true);
+    const { data } = await supabase
+      .from('shop_settings')
+      .select('value, updated_at')
+      .eq('key', 'gcash_qr_url')
+      .single();
+    if (data) { setQrUrl(data.value); setUpdatedAt(data.updated_at); }
+    setLoadingQr(false);
+  };
+
+  const acceptFile = (file: File) => {
+    if (!file.type.startsWith('image/')) { setError('Only image files allowed.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('File too large — max 5MB.'); return; }
+    setNewFile(file);
+    setNewPreview(URL.createObjectURL(file));
+    setError(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) acceptFile(file);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setNewFile(null);
+    if (newPreview) URL.revokeObjectURL(newPreview);
+    setNewPreview(null);
+    setError(null);
+    setConfirming(false);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!newFile) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const ts = Date.now();
+      const ext = newFile.name.split('.').pop() || 'png';
+      const path = `gcash-qr.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('shop-assets')
+        .upload(path, newFile, { upsert: true, contentType: newFile.type });
+      if (uploadErr) throw uploadErr;
+
+      const { data: { publicUrl } } = supabase.storage.from('shop-assets').getPublicUrl(path);
+      const bustedUrl = `${publicUrl}?t=${ts}`;
+      const now = new Date().toISOString();
+
+      const { error: settingsErr } = await supabase
+        .from('shop_settings')
+        .upsert({ key: 'gcash_qr_url', value: bustedUrl, updated_at: now });
+      if (settingsErr) throw settingsErr;
+
+      setQrUrl(bustedUrl);
+      setUpdatedAt(now);
+      setToast({ msg: 'GCash QR updated — customers will see it immediately.', ok: true });
+      cancelEdit();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save QR code.');
+      setConfirming(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="font-lovelo text-[9px] font-black tracking-[0.25em] uppercase text-gray-400 mb-0.5">Payment Settings</p>
+        <h2 className="font-lovelo font-black text-base" style={{ color: '#383838' }}>Shop Configuration</h2>
+      </div>
+
+      {/* QR Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between" style={{ backgroundColor: '#fafafa' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ee4923, #F4921F)' }}>
+              <QrCode className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="font-lovelo font-black text-sm" style={{ color: '#383838' }}>GCash QR Code</p>
+              <p className="font-lovelo text-[10px] text-gray-400" style={{ fontWeight: 300 }}>
+                Shown to customers when they select GCash payment
+              </p>
+            </div>
+          </div>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="font-lovelo flex items-center gap-2 text-xs font-black tracking-wider text-white rounded-xl px-4 py-2 transition-opacity"
+              style={{ background: 'linear-gradient(135deg, #383838, #1a1a1a)' }}
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              {qrUrl ? 'Change QR' : 'Upload QR'}
+            </button>
+          )}
+        </div>
+
+        <div className="p-6">
+          {loadingQr ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+            </div>
+          ) : !editing ? (
+            /* Current QR display */
+            qrUrl ? (
+              <div className="flex items-start gap-6">
+                <div className="w-40 h-40 flex-shrink-0 rounded-2xl border-2 border-gray-100 overflow-hidden bg-white flex items-center justify-center shadow-sm">
+                  <img src={qrUrl} alt="GCash QR Code" className="w-full h-full object-contain p-2" />
+                </div>
+                <div className="flex-1 min-w-0 pt-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="font-lovelo flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-green-50 border border-green-200 text-green-700">
+                      <CheckCircle2 className="w-3 h-3" /> Active
+                    </span>
+                  </div>
+                  <p className="font-lovelo text-xs text-gray-600 leading-relaxed mb-3" style={{ fontWeight: 300 }}>
+                    Customers see this QR when they select GCash at checkout. Make sure it matches your current GCash account.
+                  </p>
+                  {updatedAt && (
+                    <p className="font-lovelo text-[10px] text-gray-400 flex items-center gap-1.5">
+                      <RefreshCw className="w-3 h-3" />
+                      Last updated: {format(new Date(updatedAt), 'MMM d, yyyy · h:mm a')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-gray-50">
+                  <QrCode className="w-7 h-7 text-gray-300" />
+                </div>
+                <p className="font-lovelo font-black text-sm mb-1" style={{ color: '#383838' }}>No QR Code Uploaded</p>
+                <p className="font-lovelo text-xs text-gray-400 max-w-xs mx-auto mb-5" style={{ fontWeight: 300 }}>
+                  Upload your GCash QR code so customers can scan it during payment.
+                </p>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="font-lovelo inline-flex items-center gap-2 text-xs font-black tracking-wider text-white rounded-xl px-5 py-2.5"
+                  style={{ background: 'linear-gradient(135deg, #ee4923, #F4921F)' }}
+                >
+                  <ImagePlus className="w-3.5 h-3.5" /> Upload QR Code
+                </button>
+              </div>
+            )
+          ) : (
+            /* Upload form */
+            <div className="space-y-5">
+              <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400">New QR Code</p>
+
+              {/* Drop zone */}
+              <div
+                className={cn(
+                  'border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200',
+                  dragging ? 'border-orange-400 bg-orange-50' : newFile ? 'border-green-300 bg-green-50' : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50/40',
+                )}
+                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) acceptFile(f); }}
+                />
+                {newPreview ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <img src={newPreview} alt="Preview" className="w-32 h-32 object-contain rounded-xl border border-gray-200 bg-white p-1" />
+                    <p className="font-lovelo text-xs text-green-600 font-black flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />{newFile!.name}
+                    </p>
+                    <p className="font-lovelo text-[10px] text-gray-400">Click to change</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-1" style={{ backgroundColor: '#f3f4f6' }}>
+                      <Upload className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <p className="font-lovelo text-sm font-black" style={{ color: '#383838' }}>
+                      {dragging ? 'Drop it here' : 'Drag & drop QR image'}
+                    </p>
+                    <p className="font-lovelo text-[10px] text-gray-400">or click to browse · PNG, JPG (max 5MB)</p>
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <p className="font-lovelo text-[10px] text-red-500 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{error}
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { if (newFile) setConfirming(true); }}
+                  disabled={!newFile}
+                  className="font-lovelo flex items-center gap-2 text-xs font-black tracking-wider text-white rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-40"
+                  style={{ background: 'linear-gradient(135deg, #ee4923, #F4921F)' }}
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="font-lovelo text-xs font-black tracking-wider text-gray-400 hover:text-gray-600 transition-colors px-3 py-2.5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Confirmation Modal */}
+      {confirming && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 bg-amber-50 border border-amber-200">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-lovelo font-black text-base mb-1" style={{ color: '#383838' }}>Update GCash QR Code?</h3>
+                <p className="font-lovelo text-xs text-gray-500" style={{ fontWeight: 300 }}>
+                  Customers will see the new QR immediately after saving.
+                </p>
+              </div>
+            </div>
+
+            {/* Old vs New */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-2">Current</p>
+                <div className="w-full aspect-square rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden p-2">
+                  {qrUrl
+                    ? <img src={qrUrl} alt="Current QR" className="w-full h-full object-contain" />
+                    : <QrCode className="w-10 h-10 text-gray-200" />
+                  }
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase mb-2" style={{ color: '#ee4923' }}>New</p>
+                <div className="w-full aspect-square rounded-2xl border-2 border-orange-200 bg-orange-50 flex items-center justify-center overflow-hidden p-2">
+                  {newPreview && <img src={newPreview} alt="New QR" className="w-full h-full object-contain" />}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={handleConfirmSave}
+                disabled={saving}
+                className="flex-1 font-lovelo flex items-center justify-center gap-2 text-xs font-black tracking-wider text-white rounded-xl px-5 py-3 transition-opacity disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #ee4923, #F4921F)' }}
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {saving ? 'Saving…' : 'Confirm Update'}
+              </button>
+              <button
+                onClick={() => setConfirming(false)}
+                disabled={saving}
+                className="font-lovelo text-xs font-black tracking-wider text-gray-400 hover:text-gray-600 transition-colors px-4 py-3 disabled:opacity-40"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      <div
+        className={cn(
+          'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl font-lovelo text-xs font-black tracking-wide transition-all duration-300',
+          toast ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-3 pointer-events-none',
+          toast?.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white',
+        )}
+      >
+        {toast?.ok ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+        {toast?.msg}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function AdminDashboard({ bookings, services, token, onUpdateStatus, onAddUpdate, onUpdateService }: AdminDashboardProps) {
   // Bookings state
-  const [activeTab, setActiveTab]           = useState<'bookings' | 'services'>('bookings');
+  const [activeTab, setActiveTab]           = useState<'bookings' | 'services' | 'settings'>('bookings');
   const [filterStatus, setFilterStatus]     = useState<Booking['status'] | 'All'>('All');
   const [filterDate, setFilterDate]         = useState('');
   const [filterVehicle, setFilterVehicle]   = useState<'All' | 'Car' | 'Motorcycle'>('All');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [updateMessage, setUpdateMessage]   = useState('');
-  const [updateImage, setUpdateImage]       = useState<string | null>(null);
+  const [updateImages, setUpdateImages]     = useState<File[]>([]);
+  const [updatePreviews, setUpdatePreviews] = useState<string[]>([]);
+  const [postingUpdate, setPostingUpdate]   = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
   const [selectedDate, setSelectedDate]     = useState(today);
@@ -336,19 +658,65 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dirtyServices]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) { const r = new FileReader(); r.onloadend = () => setUpdateImage(r.result as string); r.readAsDataURL(file); }
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const combined = [...updateImages, ...files].slice(0, 6);
+    setUpdateImages(combined);
+    combined.forEach((file, i) => {
+      if (updatePreviews[i]) return;
+      const r = new FileReader();
+      r.onloadend = () => setUpdatePreviews(prev => {
+        const next = [...prev];
+        next[i] = r.result as string;
+        return next;
+      });
+      r.readAsDataURL(file);
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleAddUpdate = (e: React.FormEvent) => {
+  const removeImage = (idx: number) => {
+    setUpdateImages(prev => prev.filter((_, i) => i !== idx));
+    setUpdatePreviews(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAddUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedBooking && updateMessage.trim()) {
-      onAddUpdate(selectedBooking.id, updateMessage, updateImage || undefined);
-      const newUpdate = { id: Math.random().toString(36).slice(2), timestamp: new Date().toISOString(), message: updateMessage, imageUrl: updateImage || undefined };
+    if (!selectedBooking || !updateMessage.trim() || postingUpdate) return;
+    setPostingUpdate(true);
+    try {
+      const imageUrls: string[] = [];
+      for (const file of updateImages) {
+        const path = `updates/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('payment-proofs')
+          .upload(path, file);
+        if (uploadErr) throw uploadErr;
+        const { data: { publicUrl } } = supabase.storage
+          .from('payment-proofs')
+          .getPublicUrl(path);
+        imageUrls.push(publicUrl);
+      }
+
+      await onAddUpdate(selectedBooking.id, updateMessage, imageUrls);
+
+      const newUpdate = {
+        id: Math.random().toString(36).slice(2),
+        timestamp: new Date().toISOString(),
+        message: updateMessage,
+        imageUrls,
+        imageUrl: imageUrls[0],
+      };
       setSelectedBooking({ ...selectedBooking, updates: [...(selectedBooking.updates || []), newUpdate] });
-      setUpdateMessage(''); setUpdateImage(null);
+      setUpdateMessage('');
+      setUpdateImages([]);
+      setUpdatePreviews([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (err: any) {
+      alert(`Failed to post update: ${err.message}`);
+    } finally {
+      setPostingUpdate(false);
     }
   };
 
@@ -819,7 +1187,7 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                       if (orig !== next) changes.push(`${SIZE_LABELS[size]}: ₱${orig.toLocaleString()} → ₱${next.toLocaleString()}`);
                     });
                     Object.entries(d.lubePrices).forEach(([fuel, draftValue]) => {
-                      const val = draftPriceToNumber(draftValue);
+                      const val = draftPriceToNumber(draftValue as string);
                       const orig = (s.lubePrices as unknown as Record<string, number> | undefined)?.[fuel] ?? 0;
                       if (orig !== val) changes.push(`${fuel}: ₱${orig.toLocaleString()} → ₱${val.toLocaleString()}`);
                     });
@@ -931,25 +1299,43 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                       placeholder="Enter update message…"
                       className="font-lovelo w-full p-3 border-2 border-gray-100 rounded-xl focus:border-orange-400 outline-none resize-none h-20 text-sm"
                       style={{ fontWeight: 300 }} required />
-                    <label className="font-lovelo flex items-center gap-2 cursor-pointer text-xs font-black text-gray-500 hover:text-orange-500 transition-colors w-max">
-                      <ImageIcon className="w-4 h-4" />
-                      {updateImage ? 'Change Image' : 'Attach Image (optional)'}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} ref={fileInputRef} />
-                    </label>
-                    {updateImage && (
-                      <div className="relative inline-block">
-                        <img src={updateImage} alt="Preview" className="h-28 rounded-xl border border-gray-100 object-cover" />
-                        <button type="button"
-                          onClick={() => { setUpdateImage(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow">
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                    <button type="submit" disabled={!updateMessage.trim()}
+
+                    {/* Multi-image upload */}
+                    <div>
+                      <label className="font-lovelo flex items-center gap-2 cursor-pointer text-xs font-black text-gray-500 hover:text-orange-500 transition-colors w-max">
+                        <Upload className="w-4 h-4" />
+                        Add Photos {updateImages.length > 0 ? `(${updateImages.length}/6)` : '(optional, up to 6)'}
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageSelect} ref={fileInputRef} />
+                      </label>
+                      {updatePreviews.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {updatePreviews.map((src, i) => (
+                            <div key={i} className="relative">
+                              <img src={src} alt={`Preview ${i + 1}`}
+                                className="h-20 w-20 rounded-xl border border-gray-100 object-cover" />
+                              <button type="button" onClick={() => removeImage(i)}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow text-[10px]">
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                          {updateImages.length < 6 && (
+                            <label className="h-20 w-20 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 transition-colors text-gray-300 hover:text-orange-400">
+                              <Plus className="w-5 h-5" />
+                              <span className="font-lovelo text-[9px] font-black mt-0.5">Add</span>
+                              <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageSelect} />
+                            </label>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <button type="submit" disabled={!updateMessage.trim() || postingUpdate}
                       className="font-lovelo flex items-center justify-center gap-2 w-full font-black text-xs tracking-widest uppercase text-white py-3 rounded-xl transition-all disabled:opacity-40"
                       style={{ background: 'linear-gradient(135deg, #ee4923 0%, #F4921F 100%)' }}>
-                      <Plus className="w-4 h-4" /> Post Update
+                      {postingUpdate
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
+                        : <><Plus className="w-4 h-4" /> Post Update</>}
                     </button>
                   </form>
                 </div>
@@ -959,7 +1345,9 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                 <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-3">Update History</p>
                 {selectedBooking.updates && selectedBooking.updates.length > 0 ? (
                   <div className="space-y-3">
-                    {selectedBooking.updates.slice().reverse().map(update => (
+                    {selectedBooking.updates.slice().reverse().map(update => {
+                      const imgs = update.imageUrls?.length ? update.imageUrls : (update.imageUrl ? [update.imageUrl] : []);
+                      return (
                       <div key={update.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
                         <div className="flex justify-between items-start mb-2 gap-4">
                           <p className="font-lovelo text-sm" style={{ color: '#383838', fontWeight: 300 }}>{update.message}</p>
@@ -967,11 +1355,17 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                             {format(new Date(update.timestamp), 'MMM d, h:mm a')}
                           </span>
                         </div>
-                        {update.imageUrl && (
-                          <img src={update.imageUrl} alt="Update" className="mt-2 rounded-xl max-h-44 object-cover border border-gray-100 w-full" />
+                        {imgs.length > 0 && (
+                          <div className={cn('mt-2 grid gap-1.5', imgs.length === 1 ? 'grid-cols-1' : imgs.length === 2 ? 'grid-cols-2' : 'grid-cols-3')}>
+                            {imgs.map((url, i) => (
+                              <img key={i} src={url} alt={`Update photo ${i + 1}`}
+                                className="rounded-xl border border-gray-100 w-full object-cover"
+                                style={{ maxHeight: imgs.length === 1 ? '180px' : '120px' }} />
+                            ))}
+                          </div>
                         )}
                       </div>
-                    ))}
+                    )})}
                   </div>
                 ) : (
                   <div className="text-center py-8 rounded-2xl border-2 border-dashed border-gray-100">

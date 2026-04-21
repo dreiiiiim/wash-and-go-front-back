@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ServicePackage, VehicleSize, FuelType } from '../types';
 import { DOWN_PAYMENT_PERCENTAGE, PAYMENT_METHODS } from '../constants';
-import { CreditCard, Upload, User, Phone, Info } from 'lucide-react';
+import { CreditCard, Upload, User, Phone, Info, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { AppUser } from '../App';
 
 interface PaymentFormProps {
   service: ServicePackage;
@@ -13,9 +14,10 @@ interface PaymentFormProps {
   onBack: () => void;
   onSubmit: (details: { name: string, phone: string, proof: string, paymentMethod: string }) => void;
   submitting?: boolean;
+  user?: AppUser | null;
 }
 
-export default function PaymentForm({ service, vehicleSize, fuelType, date, timeSlot, onBack, onSubmit, submitting }: PaymentFormProps) {
+export default function PaymentForm({ service, vehicleSize, fuelType, date, timeSlot, onBack, onSubmit, submitting, user }: PaymentFormProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [method, setMethod] = useState(PAYMENT_METHODS[0].id);
@@ -33,6 +35,12 @@ export default function PaymentForm({ service, vehicleSize, fuelType, date, time
   }
 
   const downPayment = totalPrice * DOWN_PAYMENT_PERCENTAGE;
+
+  const handleImportFromProfile = () => {
+    if (!user) return;
+    setName(user.name.replace(/[^a-zA-Z0-9 ]/g, ''));
+    if (user.phone) setPhone(user.phone.replace(/\D/g, '').slice(0, 11));
+  };
   
   const selectedMethodDetails = PAYMENT_METHODS.find(m => m.id === method);
 
@@ -106,6 +114,18 @@ export default function PaymentForm({ service, vehicleSize, fuelType, date, time
         <h2 className="text-2xl italic font-black text-gray-900 mb-6">CUSTOMER & PAYMENT</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          {user && (
+            <button
+              type="button"
+              onClick={handleImportFromProfile}
+              className="flex items-center gap-2 text-xs font-bold text-orange-600 border border-orange-200 bg-orange-50 hover:bg-orange-100 hover:border-orange-300 transition-colors px-3 py-2 rounded-lg"
+            >
+              <UserCheck size={14} />
+              Import from Profile
+            </button>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Full Name</label>
