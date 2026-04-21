@@ -80,9 +80,12 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`Application running on http://localhost:${port}/api`);
+  const normalizedPort = Number.parseInt(stripQuotes(process.env.PORT || ''), 10);
+  const port = Number.isFinite(normalizedPort) ? normalizedPort : 3000;
+  const host = '0.0.0.0';
+
+  await app.listen(port, host);
+  logger.log(`Application running on http://${host}:${port}/api`);
 }
 bootstrap();
 
