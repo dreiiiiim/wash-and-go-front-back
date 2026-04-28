@@ -11,6 +11,14 @@ interface ScheduleSelectionProps {
   serviceCategory?: string;
 }
 
+const timeToMinutes = (time: string): number => {
+  const [timePart, period] = time.split(' ');
+  let [hours, minutes] = timePart.split(':').map(Number);
+  if (period === 'PM' && hours !== 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+};
+
 export default function ScheduleSelection({ onSelect, onBack, serviceDuration, serviceCategory }: ScheduleSelectionProps) {
   const today = startOfToday();
   const [selectedDate, setSelectedDate] = useState<string>(format(addDays(today, 1), 'yyyy-MM-dd'));
@@ -18,6 +26,25 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration, s
   const [plateNumber, setPlateNumber] = useState('');
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [visibleTimeSlots, setVisibleTimeSlots] = useState<string[]>(TIME_SLOTS);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    api.getShopSettings(selectedDate)
+      .then(settings => {
+        const openMinutes = timeToMinutes(settings.open_time);
+        const closeMinutes = timeToMinutes(settings.close_time);
+        if (!Number.isFinite(openMinutes) || !Number.isFinite(closeMinutes) || openMinutes > closeMinutes) {
+          setVisibleTimeSlots(TIME_SLOTS);
+          return;
+        }
+        setVisibleTimeSlots(TIME_SLOTS.filter(slot => {
+          const slotMinutes = timeToMinutes(slot);
+          return slotMinutes >= openMinutes && slotMinutes <= closeMinutes;
+        }));
+      })
+      .catch(() => setVisibleTimeSlots(TIME_SLOTS));
+  }, [selectedDate]);
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -81,7 +108,7 @@ export default function ScheduleSelection({ onSelect, onBack, serviceDuration, s
         </label>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {TIME_SLOTS.map((time) => {
+          {visibleTimeSlots.map((time) => {
             const available = isAvailable(time);
             const past = isPastTime(time);
             const disabled = !available || past || loadingSlots;

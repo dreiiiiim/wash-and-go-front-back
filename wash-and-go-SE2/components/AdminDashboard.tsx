@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+import { TIME_SLOTS } from '../constants';
 
 interface AdminDashboardProps {
   bookings: Booking[];
@@ -124,6 +126,15 @@ interface PriceGridProps {
   onLubePricesChange: (lubePrices: Record<string, string>) => void;
 }
 
+const OPERATING_HOUR_OPTIONS = [
+  '12:00 AM', '01:00 AM', '02:00 AM', '03:00 AM',
+  '04:00 AM', '05:00 AM', '06:00 AM', '07:00 AM',
+  '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+  '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
+  '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM',
+  '08:00 PM', '09:00 PM', '10:00 PM', '11:00 PM',
+];
+
 const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, onLubePricesChange }) => {
   const cellRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -225,6 +236,137 @@ const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, o
 };
 
 // ─── GCash QR Settings ────────────────────────────────────────────────────────
+const OperatingHoursSettings: React.FC<{ token: string | null }> = ({ token }) => {
+  const [settingsDate, setSettingsDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [openTime, setOpenTime] = useState('08:00 AM');
+  const [closeTime, setCloseTime] = useState('05:00 PM');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setMessage(null);
+    api.getShopSettings(settingsDate)
+      .then(settings => {
+        if (!mounted) return;
+        if (OPERATING_HOUR_OPTIONS.includes(settings.open_time)) setOpenTime(settings.open_time);
+        if (OPERATING_HOUR_OPTIONS.includes(settings.close_time)) setCloseTime(settings.close_time);
+      })
+      .catch((err: any) => {
+        if (mounted) setMessage({ text: err.message || 'Failed to load operating hours.', ok: false });
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [settingsDate]);
+
+  const openIndex = OPERATING_HOUR_OPTIONS.indexOf(openTime);
+  const closeIndex = OPERATING_HOUR_OPTIONS.indexOf(closeTime);
+  const invalid = openIndex === -1 || closeIndex === -1 || openIndex >= closeIndex;
+
+  const handleSave = async () => {
+    if (!token || invalid || saving) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      await api.updateShopSettings(openTime, closeTime, token, settingsDate);
+      setMessage({ text: `Operating hours updated for ${format(parseISO(settingsDate), 'MMM d, yyyy')}.`, ok: true });
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Failed to update operating hours.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3" style={{ backgroundColor: '#fafafa' }}>
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #383838, #1a1a1a)' }}>
+          <Clock className="w-4 h-4 text-white" />
+        </div>
+        <div>
+          <p className="font-lovelo font-black text-sm" style={{ color: '#383838' }}>Operating Hours</p>
+          <p className="font-lovelo text-[10px] text-gray-400" style={{ fontWeight: 300 }}>
+            Controls which booking time slots customers can select
+          </p>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={settingsDate}
+                  onChange={e => setSettingsDate(e.target.value)}
+                  className="font-lovelo w-full px-4 py-3 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-800 outline-none focus:border-orange-400 bg-gray-50 hover:bg-white transition-all"
+                />
+              </div>
+              <div>
+                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-2">Open Time</label>
+                <select
+                  value={openTime}
+                  onChange={e => setOpenTime(e.target.value)}
+                  className="font-lovelo w-full px-4 py-3 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-800 outline-none focus:border-orange-400 bg-gray-50 hover:bg-white transition-all"
+                >
+                  {OPERATING_HOUR_OPTIONS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-2">Close Time</label>
+                <select
+                  value={closeTime}
+                  onChange={e => setCloseTime(e.target.value)}
+                  className="font-lovelo w-full px-4 py-3 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-800 outline-none focus:border-orange-400 bg-gray-50 hover:bg-white transition-all"
+                >
+                  {OPERATING_HOUR_OPTIONS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {invalid && (
+              <p className="font-lovelo text-[10px] text-red-500 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />Open time must be earlier than close time.
+              </p>
+            )}
+
+            {message && (
+              <p className={cn(
+                'font-lovelo text-[10px] flex items-center gap-1.5',
+                message.ok ? 'text-green-600' : 'text-red-500',
+              )}>
+                {message.ok ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />}
+                {message.text}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!token || invalid || saving}
+              className="font-lovelo flex items-center gap-2 text-xs font-black tracking-wider text-white rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg, #ee4923, #F4921F)' }}
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {saving ? 'Saving...' : 'Save Hours'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const GcashQRSettings: React.FC = () => {
   const [qrUrl, setQrUrl]               = useState<string | null>(null);
   const [updatedAt, setUpdatedAt]       = useState<string | null>(null);
@@ -301,7 +443,7 @@ const GcashQRSettings: React.FC = () => {
 
       const { error: settingsErr } = await supabase
         .from('shop_settings')
-        .upsert({ key: 'gcash_qr_url', value: bustedUrl, updated_at: now });
+        .upsert({ id: 'gcash_qr_url', key: 'gcash_qr_url', value: bustedUrl, updated_at: now });
       if (settingsErr) throw settingsErr;
 
       setQrUrl(bustedUrl);
@@ -783,6 +925,14 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
               </span>
             )}
           </button>
+          <button onClick={() => setActiveTab('settings')}
+            className={cn(
+              'font-lovelo flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs tracking-wider uppercase transition-all duration-200',
+              activeTab === 'settings' ? 'text-white shadow-md' : 'text-gray-400 hover:text-gray-600'
+            )}
+            style={activeTab === 'settings' ? { background: 'linear-gradient(135deg, #383838, #1a1a1a)' } : {}}>
+            <Settings className="w-3.5 h-3.5" /> Settings
+          </button>
         </div>
 
         {/* ─────────────── BOOKINGS TAB ─────────────── */}
@@ -1158,6 +1308,17 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                 );
               })()}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <div>
+              <p className="font-lovelo text-[9px] font-black tracking-[0.25em] uppercase text-gray-400 mb-0.5">Shop Settings</p>
+              <h2 className="font-lovelo font-black text-base" style={{ color: '#383838' }}>Configuration</h2>
+            </div>
+            <OperatingHoursSettings token={token} />
+            <GcashQRSettings />
           </div>
         )}
       </div>

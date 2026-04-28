@@ -1,18 +1,19 @@
 import React, { useMemo } from 'react';
 import { SERVICES, SERVICE_ICONS } from '../constants';
-import { ServicePackage, ServiceCategory, LubePackageType, FuelType, VehicleType, VehicleSize } from '../types';
-import { Car, ShieldCheck, Droplets, Bike } from 'lucide-react';
+import { ServicePackage, ServiceCategory, FuelType, VehicleType, VehicleSize } from '../types';
+import { Bike, Fuel } from 'lucide-react';
 
 interface ServiceSelectionProps {
   vehicleType: 'Car' | 'Motorcycle';
   vehicleSize: VehicleSize;
   fuelType: FuelType | null;
+  onFuelTypeSelect: (fuelType: FuelType | null) => void;
   onSelect: (service: ServicePackage) => void;
   onBack: () => void;
   services?: ServicePackage[];
 }
 
-export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, onSelect, onBack, services = SERVICES }: ServiceSelectionProps) {
+export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, onFuelTypeSelect, onSelect, onBack, services = SERVICES }: ServiceSelectionProps) {
   const categories = vehicleType === 'Motorcycle'
     ? [ServiceCategory.COATING]
     : [ServiceCategory.LUBE, ServiceCategory.GROOMING, ServiceCategory.COATING];
@@ -42,6 +43,13 @@ export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, o
 
     return filtered;
   }, [activeCategory, vehicleType, fuelType, services]);
+
+  const handleCategorySelect = (category: ServiceCategory) => {
+    if (category !== ServiceCategory.LUBE) {
+      onFuelTypeSelect(null);
+    }
+    setActiveCategory(category);
+  };
 
   const handleBackCategory = () => {
     setActiveCategory(null);
@@ -75,7 +83,7 @@ export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, o
             return (
               <button
                 key={cat}
-                onClick={() => setActiveCategory(cat)}
+                onClick={() => handleCategorySelect(cat)}
                 className="group flex flex-col items-center justify-center p-10 bg-gray-50 border-2 border-transparent hover:border-orange-500 hover:bg-orange-50 rounded-2xl transition-all duration-300"
               >
                 <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center text-orange-600 mb-6 group-hover:scale-110 transition-transform">
@@ -113,6 +121,37 @@ export default function ServiceSelection({ vehicleType, vehicleSize, fuelType, o
     : activeCategory === 'GROOMING'
       ? (vehicleType === 'Motorcycle' ? 'MOTORCYCLE GROOMING' : 'AUTO GROOMING')
       : 'CERAMIC COATING';
+
+  if (activeCategory === ServiceCategory.LUBE && !fuelType) {
+    return (
+      <div className="animate-fade-in max-w-2xl mx-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={handleBackCategory} className="text-sm text-gray-500 hover:text-orange-600 font-bold">
+            &larr; BACK
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="bg-gray-900 text-white p-2 rounded-lg"><Fuel size={20} /></div>
+            <h2 className="text-2xl font-black italic text-gray-900">LUBE & GO</h2>
+          </div>
+        </div>
+
+        <p className="text-gray-500 mb-8">Select your fuel type for accurate Lube & Go pricing.</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          {[FuelType.GAS, FuelType.DIESEL].map(f => (
+            <button
+              key={f}
+              onClick={() => onFuelTypeSelect(f)}
+              className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 bg-white hover:border-orange-500 hover:bg-orange-50 transition-all justify-center"
+            >
+              <Fuel size={20} className="text-gray-400" />
+              <span className="font-bold text-lg text-gray-900">{f}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto">

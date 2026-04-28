@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -53,6 +54,7 @@ export class BookingsController {
   }
 
   /** GET /api/bookings/:id — Get booking by ID (public, for status check) */
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @Get(':id')
   findById(@Param('id') id: string) {
     return this.bookingsService.findById(id);

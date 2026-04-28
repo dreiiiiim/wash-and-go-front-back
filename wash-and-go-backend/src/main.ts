@@ -1,8 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { setDefaultResultOrder } from 'node:dns';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -13,6 +14,13 @@ async function bootstrap() {
     logger.warn(`Unable to set DNS result order to ipv4first: ${(error as Error)?.message || error}`);
   }
   const app = await NestFactory.create(AppModule);
+  app.use(helmet());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+
   const stripQuotes = (s: string) => s.replace(/^["']|["']$/g, '');
   const normalizeConfiguredOrigin = (value: string): string => {
     const cleaned = stripQuotes(value.trim()).replace(/\/+$/, '');

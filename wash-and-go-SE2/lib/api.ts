@@ -2,6 +2,14 @@ import { Booking } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+export interface ShopSettings {
+  id: string;
+  setting_date?: string | null;
+  open_time: string;
+  close_time: string;
+  updated_at?: string;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const timeoutMs = 20000;
   const controller = options?.signal ? null : new AbortController();
@@ -57,6 +65,16 @@ export const api = {
     }),
 
   getServices: () => request<any[]>('/services'),
+
+  getShopSettings: (date?: string) =>
+    request<ShopSettings>(date ? `/shop-settings?date=${encodeURIComponent(date)}` : '/shop-settings'),
+
+  updateShopSettings: (openTime: string, closeTime: string, token: string, date?: string) =>
+    request<ShopSettings>('/shop-settings', {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ open_time: openTime, close_time: closeTime, ...(date ? { date } : {}) }),
+    }),
 
   createBooking: (dto: object, token?: string) =>
     request<Booking>('/bookings', {

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { StorageService } from './storage.service';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('storage')
 export class StorageController {
@@ -24,7 +25,7 @@ export class StorageController {
    */
   @UseGuards(SupabaseAuthGuard)
   @Get('view-url')
-  getViewUrl(@Query('path') path: string) {
-    return this.storageService.getSignedViewUrl(path);
+  getViewUrl(@Query('path') path: string, @CurrentUser() user: any) {
+    return this.storageService.getSignedViewUrl(path, user.id);
   }
 }

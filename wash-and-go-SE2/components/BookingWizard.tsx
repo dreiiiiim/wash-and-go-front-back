@@ -32,14 +32,17 @@ export default function BookingWizard({ onSubmit, token, services = SERVICES, us
   const [timeSlot, setTimeSlot] = useState<string>('');
   const [plateNumber, setPlateNumber] = useState('');
 
-  const handleVehicleSelect = (type: 'Car' | 'Motorcycle', size: VehicleSize, fuel: FuelType) => {
+  const handleVehicleSelect = (type: 'Car' | 'Motorcycle', size: VehicleSize) => {
     setVehicleType(type);
     setVehicleSize(size);
-    setFuelType(fuel);
+    setFuelType(null);
     setStep(2);
   };
 
   const handleServiceSelect = (service: ServicePackage) => {
+    if (service.category !== 'LUBE') {
+      setFuelType(null);
+    }
     setSelectedService(service);
     setStep(3);
   };
@@ -85,7 +88,7 @@ export default function BookingWizard({ onSubmit, token, services = SERVICES, us
         serviceId: selectedService.id,
         vehicleSize,
         vehicleType: vehicleType === 'Car' ? 'VEHICLE' : 'MOTORCYCLE',
-        fuelType: fuelType || undefined,
+        fuelType: selectedService.category === 'LUBE' ? fuelType || undefined : undefined,
         oilType: (selectedService as any).oilType || undefined,
         date,
         timeSlot,
@@ -209,6 +212,7 @@ export default function BookingWizard({ onSubmit, token, services = SERVICES, us
               vehicleType={vehicleType}
               vehicleSize={vehicleSize}
               fuelType={fuelType}
+              onFuelTypeSelect={setFuelType}
               onSelect={handleServiceSelect}
               onBack={handleBack}
               services={services}
@@ -228,7 +232,7 @@ export default function BookingWizard({ onSubmit, token, services = SERVICES, us
             <PaymentForm
               service={selectedService}
               vehicleSize={vehicleSize}
-              fuelType={fuelType}
+              fuelType={selectedService.category === 'LUBE' ? fuelType : null}
               date={date}
               timeSlot={timeSlot}
               onBack={handleBack}
