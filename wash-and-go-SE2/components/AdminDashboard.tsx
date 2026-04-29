@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { format, parseISO, addDays, subDays } from 'date-fns';
-import { Booking, ServicePackage, VehicleSize } from '../types';
+import { Booking, BookingStatus, ServicePackage, VehicleSize } from '../types';
 import {
   Filter, Calendar, Car, Bike, Wrench, Image as ImageIcon, Plus, X,
   DollarSign, Save, ChevronLeft,
@@ -65,6 +65,15 @@ const statusMeta: Record<string, { label: string; color: string; bg: string; bor
   COMPLETED:   { label: 'Completed',   color: '#14532d', bg: '#dcfce7', border: '#bbf7d0', icon: <CheckCircle2 className="w-3 h-3" /> },
   CANCELLED:   { label: 'Cancelled',   color: '#7f1d1d', bg: '#fee2e2', border: '#fecaca', icon: <XCircle      className="w-3 h-3" /> },
 };
+
+const statusOptions = [
+  BookingStatus.PENDING,
+  BookingStatus.CONFIRMED,
+  BookingStatus.IN_PROGRESS,
+  BookingStatus.COMPLETED,
+  BookingStatus.CANCELLED,
+];
+
 function getStatusMeta(status: string) {
   const key = status.toUpperCase().replace(/[\s-]/g, '_');
   return statusMeta[key] ?? { label: status, color: '#374151', bg: '#f3f4f6', border: '#e5e7eb', icon: <Clock className="w-3 h-3" /> };
@@ -1432,13 +1441,12 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
               <div>
                 <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-3">Update Status</p>
                 <div className="flex flex-wrap gap-2">
-                  {(['Pending', 'Confirmed', 'In Progress', 'Completed', 'Cancelled'] as const).map(status => {
+                  {statusOptions.map(status => {
                     const m = getStatusMeta(status);
-                    const isActive = (selectedBooking.status as string) === status ||
-                      (selectedBooking.status as string).toUpperCase().replace(/[\s-]/g, '_') === status.toUpperCase().replace(/[\s-]/g, '_');
+                    const isActive = (selectedBooking.status as string).toUpperCase().replace(/[\s-]/g, '_') === status;
                     return (
                       <button key={status}
-                        onClick={() => { onUpdateStatus(selectedBooking.id, status); setSelectedBooking({ ...selectedBooking, status: status as any }); }}
+                        onClick={() => { onUpdateStatus(selectedBooking.id, status); setSelectedBooking({ ...selectedBooking, status }); }}
                         className="font-lovelo font-black text-[10px] flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all"
                         style={isActive
                           ? { color: m.color, backgroundColor: m.bg, borderColor: m.border }

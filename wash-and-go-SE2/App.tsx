@@ -119,10 +119,10 @@ export default function App() {
     }
   };
 
-  const loadUserBookings = async (accessToken?: string) => {
+  const loadUserBookings = async (accessToken?: string, options?: { silent?: boolean }) => {
     const t = accessToken ?? token;
     if (!t) return;
-    setLoadingUserBookings(true);
+    if (!options?.silent) setLoadingUserBookings(true);
     try {
       const data = await api.getMyBookings(t);
       setUserBookings(data);
@@ -132,9 +132,32 @@ export default function App() {
       setUserBookings([]);
       setUserBookingsError('We could not load your bookings right now. Please refresh and try again.');
     } finally {
-      setLoadingUserBookings(false);
+      if (!options?.silent) setLoadingUserBookings(false);
     }
   };
+
+  useEffect(() => {
+    if (!token || !user || user.isStaff) return;
+
+    if (view === 'STATUS' || view === 'PROFILE') {
+      loadUserBookings(token, { silent: true });
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadUserBookings(token, { silent: true });
+    }, 10000);
+
+    const handleFocus = () => {
+      loadUserBookings(token, { silent: true });
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [token, user, view]);
 
   const handleNewBooking = (booking: Booking) => {
     setBookings(prev => [booking, ...prev]);
@@ -146,8 +169,8 @@ export default function App() {
   const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     if (!token) return;
     try {
-      await api.updateStatus(id, status, token);
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+      const updated = await api.updateStatus(id, status, token);
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updated } : b));
     } catch (err: any) {
       alert(`Failed to update status: ${err.message}`);
     }

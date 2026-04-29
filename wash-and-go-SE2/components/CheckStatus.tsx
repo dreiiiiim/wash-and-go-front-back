@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Booking, BookingStatus } from '../types';
 import { Calendar, Clock, Car, Bike, User, MessageSquare, CheckCircle2, XCircle, Loader2, RefreshCw, CalendarDays, X, ChevronRight, ImageIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -243,6 +243,14 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onView }) => {
 export default function CheckStatus({ user, userBookings = [], loading, loadError, onRefresh }: CheckStatusProps) {
   const [activeTab, setActiveTab] = useState<Tab>('present');
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    if (!detailBooking) return;
+    const updatedBooking = userBookings.find(booking => booking.id === detailBooking.id);
+    if (updatedBooking && updatedBooking !== detailBooking) {
+      setDetailBooking(updatedBooking);
+    }
+  }, [userBookings, detailBooking]);
 
   const presentBookings = userBookings.filter(isActiveBooking);
   const pastBookings    = userBookings.filter(isPastBooking);

@@ -127,7 +127,7 @@ create table if not exists public.bookings (
   time_slot           text not null,
   total_price         int not null,
   down_payment_amount int not null,
-  status              text not null default 'PENDING' check (status in ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')),
+  status              text not null default 'PENDING' check (status in ('PENDING', 'CONFIRMED', 'IN_PROGRESS', 'CANCELLED', 'COMPLETED', 'REUPLOAD_REQUIRED', 'PENDING_VERIFICATION')),
   payment_proof_url   text,
   created_at          timestamp with time zone default timezone('utc', now()),
   updated_at          timestamp with time zone default timezone('utc', now())
