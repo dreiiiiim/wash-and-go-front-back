@@ -1,12 +1,22 @@
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
 
-enum BookingStatusDto {
+export enum BookingStatus {
+  PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
-  CANCELLED = 'CANCELLED',
+  IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  REUPLOAD_REQUIRED = 'REUPLOAD_REQUIRED',
+  PENDING_VERIFICATION = 'PENDING_VERIFICATION',
 }
 
 export class UpdateStatusDto {
-  @IsEnum(BookingStatusDto)
-  status: 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+  @Transform(({ value }) => value?.toUpperCase().replace(/\s+/g, '_'))
+  @IsEnum(BookingStatus)
+  status: BookingStatus;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }

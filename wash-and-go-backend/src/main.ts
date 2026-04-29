@@ -47,6 +47,10 @@ async function bootstrap() {
       .map((origin) => normalizeConfiguredOrigin(origin))
       .filter(Boolean),
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    'http://localhost:3005',
     'https://wash-and-go-front-back.pages.dev',
     'https://*.wash-and-go-front-back.pages.dev',
     'https://wash-and-go-front-back-*.vercel.app',
