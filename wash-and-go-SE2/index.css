@@ -37,6 +37,10 @@ body {
 /* Brand gradient utility */
 .brand-gradient { background: linear-gradient(135deg, #ee4923 0%, #F4921F 100%); }
 
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Scroll logo keyframe (HomePage carousel) */
 @keyframes scroll-logos {
   0%   { transform: translateX(0); }

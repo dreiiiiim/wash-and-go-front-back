@@ -45,14 +45,25 @@ export class ShopSettingsService {
   async update(dto: UpdateShopSettingsDto, requestingUserId: string) {
     await this.assertAdmin(requestingUserId);
 
-    const openIndex = OPERATING_HOUR_OPTIONS.indexOf(dto.open_time);
-    const closeIndex = OPERATING_HOUR_OPTIONS.indexOf(dto.close_time);
+    const timeToMinutes = (t: string) => {
+      const match = t.match(/^(\d{2}):(\d{2}) (AM|PM)$/);
+      if (!match) return -1;
+      let [_, h, m, p] = match;
+      let hours = parseInt(h);
+      const minutes = parseInt(m);
+      if (p === 'PM' && hours !== 12) hours += 12;
+      if (p === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    };
 
-    if (openIndex === -1 || closeIndex === -1) {
-      throw new BadRequestException('Open time and close time must be valid hourly times');
+    const openMin = timeToMinutes(dto.open_time);
+    const closeMin = timeToMinutes(dto.close_time);
+
+    if (openMin === -1 || closeMin === -1) {
+      throw new BadRequestException('Open time and close time must be in HH:mm AM/PM format');
     }
 
-    if (openIndex >= closeIndex) {
+    if (openMin >= closeMin) {
       throw new BadRequestException('Open time must be earlier than close time');
     }
 

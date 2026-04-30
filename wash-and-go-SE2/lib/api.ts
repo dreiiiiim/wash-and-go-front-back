@@ -104,6 +104,13 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
 
+  resubmitPaymentProof: (id: string, paymentProofUrl: string, token: string, paymentMethod?: string) =>
+    request<Booking>(`/bookings/${id}/resubmit-payment-proof`, {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({ paymentProofUrl, ...(paymentMethod ? { paymentMethod } : {}) }),
+    }),
+
   updateService: (id: string, dto: object, token: string) =>
     request<any>(`/services/${id}`, {
       method: 'PATCH',

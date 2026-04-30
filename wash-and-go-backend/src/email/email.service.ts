@@ -76,6 +76,7 @@ function statusBadge(status: string): string {
     PENDING:     { bg: '#fef3c7', color: '#92400e', label: 'Pending' },
     CONFIRMED:   { bg: '#dbeafe', color: '#1e40af', label: 'Confirmed' },
     IN_PROGRESS: { bg: '#ffedd5', color: '#9a3412', label: 'In Progress' },
+    REUPLOAD_REQUIRED: { bg: '#ffedd5', color: '#9a3412', label: 'Re-upload Required' },
     COMPLETED:   { bg: '#dcfce7', color: '#14532d', label: 'Completed' },
     CANCELLED:   { bg: '#fee2e2', color: '#7f1d1d', label: 'Cancelled' },
   };
@@ -377,6 +378,7 @@ export class EmailService {
     const statusMessages: Record<string, string> = {
       CONFIRMED:   'Great news! Your booking has been confirmed. We look forward to serving you.',
       IN_PROGRESS: 'Your vehicle service is now in progress. We\'ll keep you updated.',
+      REUPLOAD_REQUIRED: 'Your booking needs a corrected upload or missing requirement before we can continue reviewing it.',
       COMPLETED:   'Your service has been completed. Thank you for choosing Wash &amp; Go!',
       CANCELLED:   'Your booking has been cancelled. Please contact us if you have questions.',
     };

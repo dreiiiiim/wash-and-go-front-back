@@ -13,6 +13,7 @@ import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { AddUpdateDto } from './dto/add-update.dto';
+import { ResubmitPaymentProofDto } from './dto/resubmit-payment-proof.dto';
 import { SupabaseAuthGuard } from '../auth/guards/supabase-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -69,6 +70,17 @@ export class BookingsController {
     @CurrentUser() user?: any,
   ) {
     return this.bookingsService.findAll({ status, date }, user?.id);
+  }
+
+  /** PATCH /api/bookings/:id/resubmit-payment-proof — Customer replaces proof and reopens a cancelled booking */
+  @UseGuards(SupabaseAuthGuard)
+  @Patch(':id/resubmit-payment-proof')
+  resubmitPaymentProof(
+    @Param('id') id: string,
+    @Body() dto: ResubmitPaymentProofDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.bookingsService.resubmitPaymentProof(id, dto.paymentProofUrl, dto.paymentMethod, user.id);
   }
 
   /** PATCH /api/bookings/:id/status — Update status (admin only) */

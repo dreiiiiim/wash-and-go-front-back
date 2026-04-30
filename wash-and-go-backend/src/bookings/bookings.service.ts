@@ -139,7 +139,7 @@ export class BookingsService {
       .from('bookings')
       .select('time_slot, services!inner(category)')
       .eq('date', date)
-      .in('status', ['PENDING', 'CONFIRMED']);
+      .in('status', ['PENDING', 'CONFIRMED', 'REUPLOAD_REQUIRED']);
 
     if (category) {
       query = query.eq('services.category', category);
@@ -188,6 +188,9 @@ export class BookingsService {
       'in_progress': 'IN_PROGRESS',
       'completed': 'COMPLETED',
       'cancelled': 'CANCELLED',
+      're-upload': 'REUPLOAD_REQUIRED',
+      'reupload': 'REUPLOAD_REQUIRED',
+      'reupload_required': 'REUPLOAD_REQUIRED',
     };
     const normalizedStatus = statusMap[status.toLowerCase()] ?? status.toUpperCase();
 
@@ -209,6 +212,64 @@ export class BookingsService {
 
     const booking = this.toBooking(data);
     void this.notifyBookingStatusUpdated(booking, data.user_id);
+    return booking;
+  }
+
+  async resubmitPaymentProof(
+    id: string,
+    paymentProofUrl: string,
+    paymentMethod: string | undefined,
+    requestingUserId: string,
+  ) {
+    const bookingId = id.toUpperCase();
+
+    const { data: existing, error: existingError } = await this.supabase
+      .getAdminClient()
+      .from('bookings')
+      .select('*, services(category)')
+      .eq('id', bookingId)
+      .single();
+
+    if (existingError || !existing) {
+      throw new NotFoundException(`Booking ${bookingId} not found`);
+    }
+
+    if (existing.user_id !== requestingUserId) {
+      throw new ForbiddenException('You can only resubmit your own bookings');
+    }
+
+    if (existing.status !== 'REUPLOAD_REQUIRED') {
+      throw new BadRequestException('Only bookings marked for re-upload can be resubmitted');
+    }
+
+    const isAvailable = await this.isSlotAvailable(
+      existing.date,
+      existing.time_slot,
+      existing.services?.category,
+      bookingId,
+    );
+    if (!isAvailable) {
+      throw new ConflictException('This booking slot is no longer available. Please create a new booking with a different schedule.');
+    }
+
+    const { data, error } = await this.supabase
+      .getAdminClient()
+      .from('bookings')
+      .update({
+        payment_proof_url: paymentProofUrl,
+        ...(paymentMethod ? { payment_method: paymentMethod } : {}),
+        status: 'PENDING',
+      })
+      .eq('id', bookingId)
+      .select('*, booking_updates(*)')
+      .single();
+
+    if (error) {
+      throw new BadRequestException(`Failed to resubmit booking: ${error.message}`);
+    }
+
+    const booking = this.toBooking(data);
+    void this.notifyBookingCreated(booking, booking.customerName, requestingUserId);
     return booking;
   }
 
@@ -269,7 +330,12 @@ export class BookingsService {
     return { date, timeSlot, available, category };
   }
 
-  private async isSlotAvailable(date: string, timeSlot: string, serviceCategory?: string): Promise<boolean> {
+  private async isSlotAvailable(
+    date: string,
+    timeSlot: string,
+    serviceCategory?: string,
+    excludeBookingId?: string,
+  ): Promise<boolean> {
     let maxCapacity = 1;
     if (serviceCategory === 'LUBE') maxCapacity = 1;
     if (serviceCategory === 'GROOMING') maxCapacity = 2;
@@ -281,10 +347,13 @@ export class BookingsService {
       .select('id, services!inner(category)')
       .eq('date', date)
       .eq('time_slot', timeSlot)
-      .in('status', ['PENDING', 'CONFIRMED']);
+      .in('status', ['PENDING', 'CONFIRMED', 'REUPLOAD_REQUIRED']);
 
     if (serviceCategory) {
       query = query.eq('services.category', serviceCategory);
+    }
+    if (excludeBookingId) {
+      query = query.neq('id', excludeBookingId);
     }
 
     const { data } = await query;

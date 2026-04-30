@@ -1,6 +1,6 @@
 import type { Booking } from '../types';
 
-const ACTIVE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'IN_PROGRESS']);
+const ACTIVE_STATUSES = new Set(['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'REUPLOAD_REQUIRED']);
 const PAST_STATUSES = new Set(['COMPLETED', 'CANCELLED']);
 
 export function normalizeBookingStatus(status: string) {
@@ -57,7 +57,7 @@ function isScheduledInPast(booking: Booking) {
 
 export function isPastBooking(booking: Booking) {
   const status = normalizeBookingStatus(booking.status as string);
-  return PAST_STATUSES.has(status) || (status !== 'IN_PROGRESS' && isScheduledInPast(booking));
+  return PAST_STATUSES.has(status) || (!['IN_PROGRESS', 'REUPLOAD_REQUIRED'].includes(status) && isScheduledInPast(booking));
 }
 
 export function isActiveBooking(booking: Booking) {

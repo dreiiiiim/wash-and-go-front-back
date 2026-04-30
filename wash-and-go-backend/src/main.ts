@@ -100,7 +100,7 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   const normalizedPort = Number.parseInt(stripQuotes(process.env.PORT || ''), 10);
-  const port = Number.isFinite(normalizedPort) ? normalizedPort : 3000;
+  const port = Number.isFinite(normalizedPort) ? normalizedPort : 3001;
   const host = '0.0.0.0';
 
   await app.listen(port, host);

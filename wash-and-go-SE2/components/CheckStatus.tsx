@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Booking, BookingStatus } from '../types';
-import { Calendar, Clock, Car, Bike, User, MessageSquare, CheckCircle2, XCircle, Loader2, RefreshCw, CalendarDays, X, ChevronRight, ImageIcon } from 'lucide-react';
+import { Calendar, Clock, Car, Bike, User, MessageSquare, CheckCircle2, XCircle, Loader2, RefreshCw, CalendarDays, X, ChevronRight, ImageIcon, Upload, Info } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { AppUser } from '../App';
 import { cn } from '../lib/utils';
-import { isActiveBooking, isPastBooking } from '../lib/bookingStatus';
+import { isActiveBooking, isPastBooking, normalizeBookingStatus } from '../lib/bookingStatus';
+import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 
 interface CheckStatusProps {
   user?: AppUser | null;
@@ -12,6 +14,8 @@ interface CheckStatusProps {
   loading?: boolean;
   loadError?: string | null;
   onRefresh?: () => void;
+  token?: string | null;
+  onBookingResubmitted?: (booking: Booking) => void;
 }
 
 type Tab = 'present' | 'past';
@@ -20,6 +24,7 @@ function accentColor(status: string): string {
   const s = status.toUpperCase().replace(' ', '_');
   if (s === 'COMPLETED') return '#16a34a';
   if (s === 'CANCELLED') return '#dc2626';
+  if (s === 'REUPLOAD_REQUIRED') return '#ea580c';
   if (s === 'CONFIRMED') return '#2563eb';
   if (s === 'IN_PROGRESS') return '#ea580c';
   return '#ca8a04';
@@ -29,6 +34,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; b
   PENDING:     { label: 'Pending',     color: '#92400e', bg: '#fef3c7', border: '#fde68a', icon: <Clock className="w-3.5 h-3.5" /> },
   CONFIRMED:   { label: 'Confirmed',   color: '#1e40af', bg: '#dbeafe', border: '#bfdbfe', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   IN_PROGRESS: { label: 'In Progress', color: '#9a3412', bg: '#ffedd5', border: '#fed7aa', icon: <Loader2 className="w-3.5 h-3.5" /> },
+  REUPLOAD_REQUIRED: { label: 'Re-upload Required', color: '#9a3412', bg: '#ffedd5', border: '#fed7aa', icon: <Upload className="w-3.5 h-3.5" /> },
   COMPLETED:   { label: 'Completed',   color: '#14532d', bg: '#dcfce7', border: '#bbf7d0', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   CANCELLED:   { label: 'Cancelled',   color: '#7f1d1d', bg: '#fee2e2', border: '#fecaca', icon: <XCircle className="w-3.5 h-3.5" /> },
 };
@@ -39,10 +45,44 @@ function getStatusCfg(status: string) {
 }
 
 /* ── Booking Detail Modal ── */
-interface BookingDetailModalProps { booking: Booking; onClose: () => void }
-const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClose }) => {
+interface BookingDetailModalProps {
+  booking: Booking;
+  onClose: () => void;
+  token?: string | null;
+  onBookingResubmitted?: (booking: Booking) => void;
+}
+
+const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClose, token, onBookingResubmitted }) => {
   const cfg = getStatusCfg(booking.status as string);
   const isMotorcycle = booking.vehicleCategory === 'Motorcycle' || booking.vehicleType === 'MOTORCYCLE';
+  const canResubmit = normalizeBookingStatus(booking.status as string) === 'REUPLOAD_REQUIRED' && Boolean(token);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [resubmitting, setResubmitting] = useState(false);
+
+  const handleResubmit = async () => {
+    if (!token || !proofFile) return;
+    setResubmitting(true);
+    try {
+      const path = `proofs/resubmissions/${booking.id}-${Date.now()}-${proofFile.name.replace(/\s+/g, '_')}`;
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(path, proofFile);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(path);
+
+      const updated = await api.resubmitPaymentProof(booking.id, publicUrl, token, booking.paymentMethod);
+      onBookingResubmitted?.(updated);
+      setProofFile(null);
+      alert('Booking resubmitted. Please wait for admin review.');
+    } catch (err: any) {
+      alert(`Failed to resubmit booking: ${err.message}`);
+    } finally {
+      setResubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
@@ -115,6 +155,59 @@ const BookingDetailModal: React.FC<BookingDetailModalProps> = ({ booking, onClos
               </div>
             )}
           </div>
+
+          {booking.paymentProofUrl && (
+            <a
+              href={booking.paymentProofUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 font-lovelo text-[10px] font-black tracking-wider uppercase"
+              style={{ color: '#ee4923' }}
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              View uploaded proof
+            </a>
+          )}
+
+          {canResubmit && (
+            <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#ee4923' }} />
+                <div>
+                  <p className="font-lovelo text-xs font-black uppercase tracking-wider" style={{ color: '#383838' }}>
+                    Replace payment proof
+                  </p>
+                  <p className="font-lovelo text-xs text-gray-500 mt-1" style={{ fontWeight: 300 }}>
+                    Upload the corrected file and resubmit this same booking for review. Your booking details will stay saved.
+                  </p>
+                </div>
+              </div>
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-orange-200 border-dashed rounded-xl cursor-pointer bg-white hover:bg-orange-50 transition-colors">
+                <Upload className="w-6 h-6 mb-2" style={{ color: '#ee4923' }} />
+                <span className="font-lovelo text-xs font-black text-gray-600">
+                  {proofFile ? proofFile.name : 'Choose corrected screenshot'}
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  disabled={resubmitting}
+                  onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                />
+              </label>
+              <button
+                type="button"
+                disabled={!proofFile || resubmitting}
+                onClick={handleResubmit}
+                className={cn(
+                  'mt-3 w-full rounded-xl px-4 py-3 font-lovelo text-xs font-black uppercase tracking-wider text-white transition-colors',
+                  proofFile && !resubmitting ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-300 cursor-not-allowed'
+                )}
+              >
+                {resubmitting ? 'Resubmitting...' : 'Resubmit Booking'}
+              </button>
+            </div>
+          )}
 
           {/* Progress Updates */}
           {booking.updates && booking.updates.length > 0 && (
@@ -240,7 +333,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onView }) => {
   );
 };
 
-export default function CheckStatus({ user, userBookings = [], loading, loadError, onRefresh }: CheckStatusProps) {
+export default function CheckStatus({ user, userBookings = [], loading, loadError, onRefresh, token, onBookingResubmitted }: CheckStatusProps) {
   const [activeTab, setActiveTab] = useState<Tab>('present');
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
 
@@ -346,7 +439,12 @@ export default function CheckStatus({ user, userBookings = [], loading, loadErro
 
       {/* ── Booking Detail Modal ── */}
       {detailBooking && (
-        <BookingDetailModal booking={detailBooking} onClose={() => setDetailBooking(null)} />
+        <BookingDetailModal
+          booking={detailBooking}
+          onClose={() => setDetailBooking(null)}
+          token={token}
+          onBookingResubmitted={onBookingResubmitted}
+        />
       )}
     </div>
   );

@@ -135,7 +135,7 @@ create table if not exists public.bookings (
 
 create unique index if not exists bookings_slot_unique
   on public.bookings (date, time_slot)
-  where status in ('PENDING', 'CONFIRMED');
+  where status in ('PENDING', 'CONFIRMED', 'REUPLOAD_REQUIRED');
 
 alter table public.bookings enable row level security;
 

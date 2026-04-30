@@ -173,6 +173,7 @@ export default function App() {
       setBookings(prev => prev.map(b => b.id === id ? { ...b, ...updated } : b));
     } catch (err: any) {
       alert(`Failed to update status: ${err.message}`);
+      throw err;
     }
   };
 
@@ -186,6 +187,11 @@ export default function App() {
     } catch (err: any) {
       alert(`Failed to post update: ${err.message}`);
     }
+  };
+
+  const handleBookingResubmitted = (booking: Booking) => {
+    setUserBookings(prev => prev.map(b => b.id === booking.id ? { ...b, ...booking } : b));
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, ...booking } : b));
   };
 
   const handleUpdateService = async (id: string, dto: object) => {
@@ -260,6 +266,8 @@ export default function App() {
             loading={loadingUserBookings}
             loadError={userBookingsError}
             onRefresh={user ? () => loadUserBookings() : undefined}
+            token={token}
+            onBookingResubmitted={handleBookingResubmitted}
           />
         )}
         {view === 'PROFILE' && user && (

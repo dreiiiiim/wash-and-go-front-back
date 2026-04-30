@@ -3,7 +3,7 @@ import { format, parseISO, addDays, subDays } from 'date-fns';
 import { Booking, BookingStatus, ServicePackage, VehicleSize } from '../types';
 import {
   Filter, Calendar, Car, Bike, Wrench, Image as ImageIcon, Plus, X,
-  DollarSign, Save, ChevronLeft,
+  DollarSign, Save, ChevronLeft, Download,
   ChevronRight, Clock, CheckCircle2, XCircle, Loader2, BarChart3,
   AlertCircle, TrendingUp, Layers, RotateCcw, Upload,
   Settings, QrCode, ImagePlus, AlertTriangle, RefreshCw,
@@ -17,7 +17,7 @@ interface AdminDashboardProps {
   bookings: Booking[];
   services: ServicePackage[];
   token: string | null;
-  onUpdateStatus: (id: string, status: any) => void;
+  onUpdateStatus: (id: string, status: any) => Promise<void>;
   onAddUpdate: (id: string, message: string, imageUrls: string[]) => Promise<void>;
   onUpdateService: (id: string, dto: object) => Promise<void>;
 }
@@ -59,25 +59,21 @@ const draftPricesToNumbers = (draftPrices: Record<string, string>) =>
 
 // ─── Status Helpers ────────────────────────────────────────────────────────────
 const statusMeta: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
-  PENDING:     { label: 'Pending',     color: '#92400e', bg: '#fef3c7', border: '#fde68a', icon: <Clock        className="w-3 h-3" /> },
-  CONFIRMED:   { label: 'Confirmed',   color: '#1e40af', bg: '#dbeafe', border: '#bfdbfe', icon: <CheckCircle2 className="w-3 h-3" /> },
-  IN_PROGRESS: { label: 'In Progress', color: '#9a3412', bg: '#ffedd5', border: '#fed7aa', icon: <Loader2      className="w-3 h-3" /> },
-  COMPLETED:   { label: 'Completed',   color: '#14532d', bg: '#dcfce7', border: '#bbf7d0', icon: <CheckCircle2 className="w-3 h-3" /> },
-  CANCELLED:   { label: 'Cancelled',   color: '#7f1d1d', bg: '#fee2e2', border: '#fecaca', icon: <XCircle      className="w-3 h-3" /> },
+  PENDING:         { label: 'PENDING',         color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0', icon: <Clock        className="w-3 h-3" /> },
+  PENDING_PAYMENT: { label: 'PENDING_PAYMENT', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0', icon: <Clock        className="w-3 h-3" /> },
+  CONFIRMED:       { label: 'CONFIRMED',       color: '#1e40af', bg: '#dbeafe', border: '#bfdbfe', icon: <CheckCircle2 className="w-3 h-3" /> },
+  IN_PROGRESS:     { label: 'IN PROGRESS',     color: '#9a3412', bg: '#ffedd5', border: '#fed7aa', icon: <Loader2      className="w-3 h-3" /> },
+  REUPLOAD_REQUIRED: { label: 'RE-UPLOAD',     color: '#9a3412', bg: '#ffedd5', border: '#fed7aa', icon: <Upload       className="w-3 h-3" /> },
+  COMPLETED:       { label: 'COMPLETED',       color: '#14532d', bg: '#dcfce7', border: '#bbf7d0', icon: <CheckCircle2 className="w-3 h-3" /> },
+  CANCELLED:       { label: 'CANCELLED',       color: '#7f1d1d', bg: '#fee2e2', border: '#fecaca', icon: <XCircle      className="w-3 h-3" /> },
 };
-
-const statusOptions = [
-  BookingStatus.PENDING,
-  BookingStatus.CONFIRMED,
-  BookingStatus.IN_PROGRESS,
-  BookingStatus.COMPLETED,
-  BookingStatus.CANCELLED,
-];
 
 function getStatusMeta(status: string) {
   const key = status.toUpperCase().replace(/[\s-]/g, '_');
   return statusMeta[key] ?? { label: status, color: '#374151', bg: '#f3f4f6', border: '#e5e7eb', icon: <Clock className="w-3 h-3" /> };
 }
+
+const normalizeStatus = (status: string) => status.toUpperCase().replace(/[\s-]/g, '_');
 function StatusBadge({ status }: { status: string }) {
   const m = getStatusMeta(status);
   return (
@@ -244,6 +240,133 @@ const PriceGrid: React.FC<PriceGridProps> = ({ service, draft, onPricesChange, o
   );
 };
 
+// ─── Time Wheel Picker (iOS Style) ───────────────────────────────────────────
+const WheelColumn: React.FC<{ 
+  options: (string | number)[], 
+  value: string | number, 
+  onChange: (val: any) => void,
+  width?: string
+}> = ({ options, value, onChange, width = 'w-14' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemHeight = 44; // match h-11
+  const selectedIndex = options.indexOf(value);
+
+  // We use a flag to prevent feedback loops during programmatic scroll
+  const isProgrammaticScroll = useRef(false);
+
+  useEffect(() => {
+    if (containerRef.current && !isProgrammaticScroll.current) {
+      containerRef.current.scrollTop = selectedIndex * itemHeight;
+    }
+  }, [selectedIndex]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isProgrammaticScroll.current) return;
+    const scrollTop = e.currentTarget.scrollTop;
+    const index = Math.round(scrollTop / itemHeight);
+    if (index >= 0 && index < options.length && options[index] !== value) {
+      onChange(options[index]);
+    }
+  };
+
+  return (
+    <div className={cn("relative z-20 h-[160px] overflow-hidden flex flex-col items-center", width)}>
+      <div 
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="w-full h-full overflow-y-scroll no-scrollbar snap-y snap-mandatory py-[60px]"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {options.map((opt, i) => {
+          const isSelected = opt === value;
+          const isMinutes = options.length === 60;
+          const display = typeof opt === 'number' ? (isMinutes ? String(opt).padStart(2, '0') : String(opt)) : opt;
+          
+          return (
+            <div 
+              key={i} 
+              className={cn(
+                "relative h-10 flex items-center justify-center font-lovelo text-sm transition-all duration-300 snap-center cursor-pointer z-30",
+                isSelected ? "text-gray-900 font-black" : "text-gray-300 font-medium opacity-40"
+              )}
+              onClick={() => {
+                isProgrammaticScroll.current = true;
+                onChange(opt);
+                setTimeout(() => { isProgrammaticScroll.current = false; }, 100);
+              }}
+            >
+              {display}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const TimeWheelPicker: React.FC<{ value: string; onChange: (val: string) => void }> = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  const match = value.match(/^(\d{2}):(\d{2}) (AM|PM)$/);
+  const h = match ? parseInt(match[1]) : 8;
+  const m = match ? parseInt(match[2]) : 0;
+  const p = match ? match[3] : 'AM';
+
+  const hours = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
+  const periods = ['AM', 'PM'];
+
+  const update = (newH: number, newM: number, newP: string) => {
+    onChange(`${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')} ${newP}`);
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="font-lovelo w-full px-4 py-3 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-800 outline-none focus:border-orange-400 bg-gray-50 hover:bg-white transition-all flex items-center justify-between"
+      >
+        <span>{value}</span>
+        <Clock className="w-4 h-4 text-gray-300" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-2 z-[100] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-gray-100 p-4 animate-fade-in min-w-[240px]">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4 px-1">
+            <span className="font-lovelo font-black text-sm text-gray-800">Time</span>
+            <span className="font-lovelo text-[10px] font-black px-4 py-1.5 rounded-full bg-blue-50 text-blue-600">
+              {value}
+            </span>
+          </div>
+          
+          <div className="relative flex items-center justify-center gap-2">
+            {/* Selection Highlight - Unified Pill Shape Masking */}
+            <div className="absolute top-1/2 left-0 right-0 h-10 -translate-y-1/2 bg-gray-50 rounded-full pointer-events-none z-10" />
+            
+            <WheelColumn options={hours} value={h} onChange={val => update(val, m, p)} width="w-14" />
+            <div className="text-gray-200 font-lovelo text-base pb-1 z-20">:</div>
+            <WheelColumn options={minutes} value={m} onChange={val => update(h, val, p)} width="w-14" />
+            <WheelColumn options={periods} value={p} onChange={val => update(h, m, val)} width="w-20" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── GCash QR Settings ────────────────────────────────────────────────────────
 const OperatingHoursSettings: React.FC<{ token: string | null }> = ({ token }) => {
   const [settingsDate, setSettingsDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -260,8 +383,8 @@ const OperatingHoursSettings: React.FC<{ token: string | null }> = ({ token }) =
     api.getShopSettings(settingsDate)
       .then(settings => {
         if (!mounted) return;
-        if (OPERATING_HOUR_OPTIONS.includes(settings.open_time)) setOpenTime(settings.open_time);
-        if (OPERATING_HOUR_OPTIONS.includes(settings.close_time)) setCloseTime(settings.close_time);
+        setOpenTime(settings.open_time);
+        setCloseTime(settings.close_time);
       })
       .catch((err: any) => {
         if (mounted) setMessage({ text: err.message || 'Failed to load operating hours.', ok: false });
@@ -272,9 +395,20 @@ const OperatingHoursSettings: React.FC<{ token: string | null }> = ({ token }) =
     return () => { mounted = false; };
   }, [settingsDate]);
 
-  const openIndex = OPERATING_HOUR_OPTIONS.indexOf(openTime);
-  const closeIndex = OPERATING_HOUR_OPTIONS.indexOf(closeTime);
-  const invalid = openIndex === -1 || closeIndex === -1 || openIndex >= closeIndex;
+  const timeToMinutes = (t: string) => {
+    const match = t.match(/^(\d{2}):(\d{2}) (AM|PM)$/);
+    if (!match) return -1;
+    let [_, h, mi, p] = match;
+    let hrs = parseInt(h);
+    const mins = parseInt(mi);
+    if (p === 'PM' && hrs !== 12) hrs += 12;
+    if (p === 'AM' && hrs === 12) hrs = 0;
+    return hrs * 60 + mins;
+  };
+
+  const openMin = timeToMinutes(openTime);
+  const closeMin = timeToMinutes(closeTime);
+  const invalid = openMin === -1 || closeMin === -1 || openMin >= closeMin;
 
   const handleSave = async () => {
     if (!token || invalid || saving) return;
@@ -291,7 +425,7 @@ const OperatingHoursSettings: React.FC<{ token: string | null }> = ({ token }) =
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3" style={{ backgroundColor: '#fafafa' }}>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #383838, #1a1a1a)' }}>
           <Clock className="w-4 h-4 text-white" />
@@ -322,24 +456,12 @@ const OperatingHoursSettings: React.FC<{ token: string | null }> = ({ token }) =
                 />
               </div>
               <div>
-                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-2">Open Time</label>
-                <select
-                  value={openTime}
-                  onChange={e => setOpenTime(e.target.value)}
-                  className="font-lovelo w-full px-4 py-3 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-800 outline-none focus:border-orange-400 bg-gray-50 hover:bg-white transition-all"
-                >
-                  {OPERATING_HOUR_OPTIONS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
-                </select>
+                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-3">Open Time</label>
+                <TimeWheelPicker value={openTime} onChange={setOpenTime} />
               </div>
               <div>
-                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-2">Close Time</label>
-                <select
-                  value={closeTime}
-                  onChange={e => setCloseTime(e.target.value)}
-                  className="font-lovelo w-full px-4 py-3 border-2 border-gray-100 rounded-xl text-sm font-black text-gray-800 outline-none focus:border-orange-400 bg-gray-50 hover:bg-white transition-all"
-                >
-                  {OPERATING_HOUR_OPTIONS.map(slot => <option key={slot} value={slot}>{slot}</option>)}
-                </select>
+                <label className="font-lovelo block text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-3">Close Time</label>
+                <TimeWheelPicker value={closeTime} onChange={setCloseTime} />
               </div>
             </div>
 
@@ -701,6 +823,8 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
   const [filterDate, setFilterDate]         = useState('');
   const [filterVehicle, setFilterVehicle]   = useState<'All' | 'Car' | 'Motorcycle'>('All');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<BookingStatus | null>(null);
+  const [showDisapproveOptions, setShowDisapproveOptions] = useState(false);
   const [updateMessage, setUpdateMessage]   = useState('');
   const [updateImages, setUpdateImages]     = useState<File[]>([]);
   const [updatePreviews, setUpdatePreviews] = useState<string[]>([]);
@@ -809,6 +933,29 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, dirtyServices]);
 
+  const downloadCSV = () => {
+    const headers = [
+      'Booking ID', 'Date', 'Time', 'Customer Name', 'Phone', 'Email',
+      'Service', 'Vehicle Category', 'Vehicle Size', 'Plate Number',
+      'Total Price', 'Down Payment', 'Payment Method', 'Reference No.', 'Status'
+    ];
+    const rows = bookings.map(b => [
+      b.id, b.date, b.time ?? b.timeSlot, b.customerName, b.contact ?? b.customerPhone,
+      b.email || 'N/A', b.serviceName, b.vehicleCategory ?? b.vehicleType ?? 'N/A',
+      b.vehicleSize, b.plateNumber || 'N/A', b.totalPrice, b.downPayment ?? b.downPaymentAmount,
+      b.paymentMethod || 'N/A', b.referenceNumber || 'N/A', b.status
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bookings_export_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -837,6 +984,9 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
     if (!selectedBooking || !updateMessage.trim() || postingUpdate) return;
     setPostingUpdate(true);
     try {
+      const nextStatus = pendingStatus ?? selectedBooking.status;
+      const statusChanged = nextStatus !== selectedBooking.status;
+
       const imageUrls: string[] = [];
       for (const file of updateImages) {
         const path = `updates/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
@@ -850,6 +1000,10 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
         imageUrls.push(publicUrl);
       }
 
+      if (statusChanged) {
+        await onUpdateStatus(selectedBooking.id, nextStatus);
+      }
+
       await onAddUpdate(selectedBooking.id, updateMessage, imageUrls);
 
       const newUpdate = {
@@ -859,7 +1013,13 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
         imageUrls,
         imageUrl: imageUrls[0],
       };
-      setSelectedBooking({ ...selectedBooking, updates: [...(selectedBooking.updates || []), newUpdate] });
+      setSelectedBooking({
+        ...selectedBooking,
+        status: nextStatus,
+        updates: [...(selectedBooking.updates || []), newUpdate],
+      });
+      setPendingStatus(null);
+      setShowDisapproveOptions(false);
       setUpdateMessage('');
       setUpdateImages([]);
       setUpdatePreviews([]);
@@ -1006,38 +1166,47 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
             {/* Filter + Table */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4"
-                style={{ background: 'linear-gradient(135deg, #383838 0%, #1a1a1a 100%)' }}>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" style={{ color: '#ee4923' }} />
-                  <h2 className="font-lovelo font-black text-sm text-white tracking-wider uppercase">All Bookings</h2>
-                  <span className="font-lovelo text-[10px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(238,73,35,0.2)', color: '#F4921F' }}>
-                    {filteredBookings.length}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <select value={filterStatus as string} onChange={e => setFilterStatus(e.target.value as any)}
-                    className="font-lovelo text-xs font-black bg-white/10 text-white border border-white/20 rounded-xl px-3 py-2 outline-none hover:bg-white/20 transition-colors">
-                    <option value="All"         className="text-gray-800 bg-white">All Statuses</option>
-                    <option value="PENDING"      className="text-gray-800 bg-white">Pending</option>
-                    <option value="CONFIRMED"    className="text-gray-800 bg-white">Confirmed</option>
-                    <option value="IN_PROGRESS"  className="text-gray-800 bg-white">In Progress</option>
-                    <option value="COMPLETED"    className="text-gray-800 bg-white">Completed</option>
-                    <option value="CANCELLED"    className="text-gray-800 bg-white">Cancelled</option>
-                  </select>
-                  <select value={filterVehicle} onChange={e => setFilterVehicle(e.target.value as any)}
-                    className="font-lovelo text-xs font-black bg-white/10 text-white border border-white/20 rounded-xl px-3 py-2 outline-none hover:bg-white/20 transition-colors">
-                    <option value="All"        className="text-gray-800 bg-white">All Vehicles</option>
-                    <option value="Car"        className="text-gray-800 bg-white">Cars</option>
-                    <option value="Motorcycle" className="text-gray-800 bg-white">Motorcycles</option>
-                  </select>
+                style={{ background: '#262626' }}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
                   <div className="flex items-center gap-2">
-                    <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
-                      className="font-lovelo text-xs font-black bg-white/10 text-white border border-white/20 rounded-xl px-3 py-2 outline-none hover:bg-white/20 transition-colors" />
-                    {filterDate && (
-                      <button onClick={() => setFilterDate('')}
-                        className="font-lovelo text-[10px] font-black px-2 py-1 rounded-lg transition-colors"
-                        style={{ color: '#F4921F' }}>Clear</button>
-                    )}
+                    <Filter className="w-4 h-4" style={{ color: '#ee4923' }} />
+                    <h2 className="font-lovelo font-black text-sm text-white tracking-wider uppercase">All Bookings</h2>
+                    <span className="font-lovelo text-[10px] font-black px-2 py-0.5 rounded-full" style={{ backgroundColor: '#ee4923', color: '#ffffff' }}>
+                      {filteredBookings.length}
+                    </span>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={filterStatus as string} onChange={e => setFilterStatus(e.target.value as any)}
+                      className="font-lovelo text-[10px] font-black bg-[#333333] text-white border border-[#444444] rounded-xl px-4 py-2.5 outline-none hover:bg-[#444444] transition-colors appearance-none cursor-pointer">
+                      <option value="All"         className="text-gray-800 bg-white">All Statuses</option>
+                      <option value="PENDING"      className="text-gray-800 bg-white">Pending</option>
+                      <option value="CONFIRMED"    className="text-gray-800 bg-white">Confirmed</option>
+                      <option value="IN_PROGRESS"  className="text-gray-800 bg-white">In Progress</option>
+                      <option value="REUPLOAD_REQUIRED" className="text-gray-800 bg-white">Re-upload Required</option>
+                      <option value="COMPLETED"    className="text-gray-800 bg-white">Completed</option>
+                      <option value="CANCELLED"    className="text-gray-800 bg-white">Cancelled</option>
+                    </select>
+                    
+                    <select value={filterVehicle} onChange={e => setFilterVehicle(e.target.value as any)}
+                      className="font-lovelo text-[10px] font-black bg-[#333333] text-white border border-[#444444] rounded-xl px-4 py-2.5 outline-none hover:bg-[#444444] transition-colors appearance-none cursor-pointer">
+                      <option value="All"        className="text-gray-800 bg-white">All Vehicles</option>
+                      <option value="Car"        className="text-gray-800 bg-white">Cars</option>
+                      <option value="Motorcycle" className="text-gray-800 bg-white">Motorcycles</option>
+                    </select>
+
+                    <div className="relative">
+                      <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+                        className="font-lovelo text-[10px] font-black bg-[#333333] text-white border border-[#444444] rounded-xl px-4 py-2.5 outline-none hover:bg-[#444444] transition-colors" />
+                    </div>
+
+                    <button 
+                      onClick={downloadCSV}
+                      className="font-lovelo flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-black text-[10px] tracking-wider uppercase text-white transition-all shadow-sm"
+                      style={{ background: '#ee4923' }}
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download CSV
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1066,7 +1235,7 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                           <p className="font-lovelo font-black text-sm" style={{ color: '#383838' }}>
                             {format(parseISO(booking.date), 'MMM d, yyyy')}
                           </p>
-                          <p className="font-lovelo text-xs mt-0.5" style={{ color: '#ee4923', fontWeight: 300 }}>
+                          <p className="font-lovelo text-xs mt-0.5" style={{ color: '#ee4923', fontWeight: 900 }}>
                             {booking.time ?? booking.timeSlot}
                           </p>
                         </td>
@@ -1097,25 +1266,25 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                         </td>
                         <td className="px-5 py-4">
                           <p className="font-lovelo font-black text-sm" style={{ color: '#ee4923' }}>
-                            ₱{(booking.downPayment ?? booking.downPaymentAmount).toLocaleString()}
+                            ₱{(booking.downPayment ?? booking.downPaymentAmount ?? 0).toLocaleString()}
                           </p>
                           <p className="font-lovelo text-[9px] text-gray-400 mb-1" style={{ fontWeight: 300 }}>Down Payment</p>
                           {booking.paymentMethod && (
-                            <span className="font-lovelo text-[9px] font-black px-2 py-0.5 rounded-lg text-gray-500 inline-block" style={{ backgroundColor: '#f3f4f6' }}>
-                              {booking.paymentMethod}
+                            <span className="font-lovelo text-[9px] font-black px-2 py-0.5 rounded-lg text-gray-400 inline-block" style={{ backgroundColor: '#f3f4f6' }}>
+                              {booking.paymentMethod.toLowerCase()}
                             </span>
                           )}
                           {booking.referenceNumber && (
-                            <p className="font-lovelo text-[9px] font-black text-blue-500 mt-1">Ref: {booking.referenceNumber}</p>
+                            <p className="font-lovelo text-[9px] font-black text-gray-300 mt-1">Ref: {booking.referenceNumber}</p>
                           )}
                         </td>
                         <td className="px-5 py-4">
                           <StatusBadge status={booking.status as string} />
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button onClick={() => setSelectedBooking(booking)}
-                            className="font-lovelo font-black text-[10px] tracking-widest uppercase px-4 py-2 rounded-xl text-white transition-all hover:opacity-90"
-                            style={{ background: 'linear-gradient(135deg, #383838, #1a1a1a)' }}>
+                          <button onClick={() => { setSelectedBooking(booking); setPendingStatus(null); setShowDisapproveOptions(false); }}
+                            className="font-lovelo font-black text-[10px] tracking-widest uppercase px-5 py-2.5 rounded-xl text-white transition-all hover:bg-gray-800 shadow-sm"
+                            style={{ background: '#262626' }}>
                             Manage
                           </button>
                         </td>
@@ -1420,7 +1589,7 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                   )}
                 </h2>
               </div>
-              <button onClick={() => setSelectedBooking(null)}
+              <button onClick={() => { setSelectedBooking(null); setPendingStatus(null); setShowDisapproveOptions(false); }}
                 className="w-9 h-9 flex items-center justify-center rounded-xl border-2 border-gray-100 hover:border-red-200 hover:bg-red-50 transition-colors text-gray-400 hover:text-red-500">
                 <X className="w-4 h-4" />
               </button>
@@ -1438,24 +1607,132 @@ export default function AdminDashboard({ bookings, services, token, onUpdateStat
                 </div>
               )}
 
-              <div>
-                <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-3">Update Status</p>
-                <div className="flex flex-wrap gap-2">
-                  {statusOptions.map(status => {
-                    const m = getStatusMeta(status);
-                    const isActive = (selectedBooking.status as string).toUpperCase().replace(/[\s-]/g, '_') === status;
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <p className="font-lovelo text-[9px] font-black tracking-[0.2em] uppercase text-gray-400 mb-1">Update Status</p>
+                    <p className="font-lovelo text-xs text-gray-500" style={{ fontWeight: 300 }}>
+                      Choose the next action, then click Post Update to save it.
+                    </p>
+                  </div>
+                  <StatusBadge status={(pendingStatus ?? selectedBooking.status) as string} />
+                </div>
+
+                {(() => {
+                  const currentStatus = normalizeStatus(selectedBooking.status as string);
+                  const visibleStatus = normalizeStatus((pendingStatus ?? selectedBooking.status) as string);
+                  const actionButton = (
+                    status: BookingStatus,
+                    label: string,
+                    description: string,
+                    tone: 'primary' | 'danger' | 'neutral' = 'neutral',
+                  ) => {
+                    const selected = visibleStatus === status;
+                    const toneStyle = tone === 'primary'
+                      ? { active: '#ee4923', soft: '#fff7ed', border: '#fed7aa' }
+                      : tone === 'danger'
+                        ? { active: '#dc2626', soft: '#fef2f2', border: '#fecaca' }
+                        : { active: '#383838', soft: '#ffffff', border: '#e5e7eb' };
+
                     return (
-                      <button key={status}
-                        onClick={() => { onUpdateStatus(selectedBooking.id, status); setSelectedBooking({ ...selectedBooking, status }); }}
-                        className="font-lovelo font-black text-[10px] flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 transition-all"
-                        style={isActive
-                          ? { color: m.color, backgroundColor: m.bg, borderColor: m.border }
-                          : { color: '#9ca3af', backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}>
-                        {m.icon}{m.label}
+                      <button
+                        type="button"
+                        onClick={() => setPendingStatus(status)}
+                        className="text-left rounded-xl border-2 p-4 transition-all bg-white hover:border-orange-200"
+                        style={selected
+                          ? { borderColor: toneStyle.active, backgroundColor: toneStyle.soft }
+                          : { borderColor: toneStyle.border }}
+                      >
+                        <span className="font-lovelo flex items-center gap-2 text-xs font-black uppercase tracking-wider"
+                          style={{ color: selected ? toneStyle.active : '#383838' }}>
+                          {getStatusMeta(status).icon}
+                          {label}
+                        </span>
+                        <span className="font-lovelo block text-[11px] text-gray-500 mt-1 leading-relaxed" style={{ fontWeight: 300 }}>
+                          {description}
+                        </span>
                       </button>
                     );
-                  })}
-                </div>
+                  };
+
+                  if (currentStatus === 'PENDING' || currentStatus === 'PENDING_PAYMENT') {
+                    return (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {actionButton(BookingStatus.CONFIRMED, 'Approve', 'Move this booking into the confirmed service flow.', 'primary')}
+                          <button
+                            type="button"
+                            onClick={() => setShowDisapproveOptions(prev => !prev)}
+                            className="text-left rounded-xl border-2 border-red-100 bg-white p-4 transition-all hover:border-red-200"
+                          >
+                            <span className="font-lovelo flex items-center gap-2 text-xs font-black uppercase tracking-wider text-red-700">
+                              <XCircle className="w-3 h-3" />
+                              Disapprove
+                            </span>
+                            <span className="font-lovelo block text-[11px] text-gray-500 mt-1 leading-relaxed" style={{ fontWeight: 300 }}>
+                              Choose whether to close the booking or require a corrected upload.
+                            </span>
+                          </button>
+                        </div>
+
+                        {showDisapproveOptions && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-red-100 bg-white p-3">
+                            {actionButton(BookingStatus.CANCELLED, 'Cancelled', 'Permanently close this booking and move it to Past Bookings.', 'danger')}
+                            {actionButton(BookingStatus.REUPLOAD_REQUIRED, 'Re-upload', 'Keep the booking active and ask the customer to replace the incorrect upload.', 'primary')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (currentStatus === 'CONFIRMED') {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {actionButton(BookingStatus.IN_PROGRESS, 'Start Service', 'Move from Confirmed to In Progress.', 'primary')}
+                      </div>
+                    );
+                  }
+
+                  if (currentStatus === 'IN_PROGRESS') {
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {actionButton(BookingStatus.COMPLETED, 'Complete Booking', 'Mark the service as completed and move it to Past Bookings.', 'primary')}
+                      </div>
+                    );
+                  }
+
+                  if (currentStatus === 'REUPLOAD_REQUIRED') {
+                    return (
+                      <div className="space-y-3">
+                        <div className="rounded-xl border border-orange-100 bg-white p-4">
+                          <p className="font-lovelo text-xs font-black uppercase tracking-wider" style={{ color: '#9a3412' }}>
+                            Waiting for customer re-upload
+                          </p>
+                          <p className="font-lovelo text-[11px] text-gray-500 mt-1 leading-relaxed" style={{ fontWeight: 300 }}>
+                            The booking stays active with all details saved. After the customer resubmits, it will return to Pending for review.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {actionButton(BookingStatus.CANCELLED, 'Force Cancel', 'Close this booking if the customer does not re-upload or correct the requirement.', 'danger')}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="rounded-xl border border-gray-100 bg-white p-4">
+                      <p className="font-lovelo text-xs font-black uppercase tracking-wider text-gray-500">
+                        No next status action available.
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {pendingStatus && pendingStatus !== selectedBooking.status && (
+                  <p className="font-lovelo text-[10px] text-orange-600 mt-3" style={{ fontWeight: 300 }}>
+                    Status change is pending. It will be saved when you post the update.
+                  </p>
+                )}
               </div>
 
               <div className="rounded-2xl overflow-hidden border border-gray-100">
